@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-09 16:33:13
+# @Last Modified time: 2020-04-09 16:37:13
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -11,6 +11,7 @@
 # - Yunmu Huang <huangyunmu@sensetime.com>
 # - Haozhe Xie <cshzxie@gmail.com>
 
+import math
 import torch
 import torch.functional as F
 import torchvision.models
@@ -21,7 +22,7 @@ import utils.helpers
 class ResBlock(torch.nn.Module):
     def __init__(self, indim, outdim=None, stride=1):
         super(ResBlock, self).__init__()
-        if outdim == None:
+        if outdim is None:
             outdim = indim
         if indim == outdim and stride == 1:
             self.downsample = None
@@ -57,20 +58,21 @@ class EncoderMemory(torch.nn.Module):
         self.res4 = resnet.layer3    # 1/8, 1024
 
     def forward(self, in_f, in_m, in_o):
+        # TODO: Normalize in_f
         # print(in_f.shape)   # torch.Size([1, 3, 480, 864])
         # print(in_m.shape)   # torch.Size([1, 480, 864])
         # print(in_o.shape)   # torch.Size([1, 480, 864])
         m = torch.unsqueeze(in_m, dim=1).float()    # add channel dim
         o = torch.unsqueeze(in_o, dim=1).float()    # add channel dim
 
-        x = self.conv1(f) + self.conv1_m(m) + self.conv1_o(o)
+        x = self.conv1(in_f) + self.conv1_m(m) + self.conv1_o(o)
         x = self.bn1(x)
         c1 = self.relu(x)    # 1/2, 64
         x = self.maxpool(c1)    # 1/4, 64
         r2 = self.res2(x)    # 1/4, 256
         r3 = self.res3(r2)    # 1/8, 512
         r4 = self.res4(r3)    # 1/8, 1024
-        return r4, r3, r2, c1, f
+        return r4, r3, r2, c1, in_f
 
 
 class EncoderQuery(torch.nn.Module):
@@ -87,14 +89,15 @@ class EncoderQuery(torch.nn.Module):
         self.res4 = resnet.layer3    # 1/8, 1024
 
     def forward(self, in_f):
-        x = self.conv1(f)
+        # TODO: Normalize in_f
+        x = self.conv1(in_f)
         x = self.bn1(x)
         c1 = self.relu(x)    # 1/2, 64
         x = self.maxpool(c1)    # 1/4, 64
         r2 = self.res2(x)    # 1/4, 256
         r3 = self.res3(r2)    # 1/8, 512
         r4 = self.res4(r3)    # 1/8, 1024
-        return r4, r3, r2, c1, f
+        return r4, r3, r2, c1, in_f
 
 
 class Refine(torch.nn.Module):
@@ -129,7 +132,7 @@ class Decoder(torch.nn.Module):
         p2 = self.pred2(F.relu(m2))
 
         p = F.interpolate(p2, scale_factor=4, mode='bilinear', align_corners=False)
-        return p    #, p2, p3, p4
+        return p
 
 
 class Memory(torch.nn.Module):
