@@ -1,6 +1,6 @@
 [style]
 based_on_style = pep8
-column_limit = 119
+column_limit = 99
 spaces_before_comment = 4
 split_before_logical_operator = True
 use_tabs = False
