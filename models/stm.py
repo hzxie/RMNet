@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-09 16:37:13
+# @Last Modified time: 2020-04-10 10:41:56
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -27,7 +27,11 @@ class ResBlock(torch.nn.Module):
         if indim == outdim and stride == 1:
             self.downsample = None
         else:
-            self.downsample = torch.nn.Conv2d(indim, outdim, kernel_size=3, padding=1, stride=stride)
+            self.downsample = torch.nn.Conv2d(indim,
+                                              outdim,
+                                              kernel_size=3,
+                                              padding=1,
+                                              stride=stride)
 
         self.conv1 = torch.nn.Conv2d(indim, outdim, kernel_size=3, padding=1, stride=stride)
         self.conv2 = torch.nn.Conv2d(outdim, outdim, kernel_size=3, padding=1)
@@ -58,12 +62,11 @@ class EncoderMemory(torch.nn.Module):
         self.res4 = resnet.layer3    # 1/8, 1024
 
     def forward(self, in_f, in_m, in_o):
-        # TODO: Normalize in_f
         # print(in_f.shape)   # torch.Size([1, 3, 480, 864])
-        # print(in_m.shape)   # torch.Size([1, 480, 864])
-        # print(in_o.shape)   # torch.Size([1, 480, 864])
-        m = torch.unsqueeze(in_m, dim=1).float()    # add channel dim
-        o = torch.unsqueeze(in_o, dim=1).float()    # add channel dim
+        # print(in_m.shape)   # torch.Size([1, 1, 480, 864])
+        # print(in_o.shape)   # torch.Size([1, 1, 480, 864])
+        m = in_m.float()
+        o = in_o.float()
 
         x = self.conv1(in_f) + self.conv1_m(m) + self.conv1_o(o)
         x = self.bn1(x)
@@ -89,7 +92,6 @@ class EncoderQuery(torch.nn.Module):
         self.res4 = resnet.layer3    # 1/8, 1024
 
     def forward(self, in_f):
-        # TODO: Normalize in_f
         x = self.conv1(in_f)
         x = self.bn1(x)
         c1 = self.relu(x)    # 1/2, 64
@@ -110,7 +112,8 @@ class Refine(torch.nn.Module):
 
     def forward(self, f, pm):
         s = self.ResFS(self.convFS(f))
-        m = s + F.interpolate(pm, scale_factor=self.scale_factor, mode='bilinear', align_corners=False)
+        m = s + F.interpolate(
+            pm, scale_factor=self.scale_factor, mode='bilinear', align_corners=False)
         m = self.ResMM(m)
         return m
 
@@ -224,7 +227,8 @@ class STM(torch.nn.Module):
         B, K, H, W = masks.shape
         # print(frame.shape)    # torch.Size([1, 3, 480, 854])
         # print(masks.shape)    # torch.Size([1, 11, 480, 854])
-        (frame, masks), pad = self.pad_divide_by([frame, masks], 16, (frame.size()[2], frame.size()[3]))
+        (frame, masks), pad = self.pad_divide_by([frame, masks], 16,
+                                                 (frame.size()[2], frame.size()[3]))
         # print(pad)            # (5, 5, 0, 0)
 
         # make batch arg list
@@ -233,8 +237,9 @@ class STM(torch.nn.Module):
             for o in range(1, n_objects[i] + 1):    # 1 - no
                 batch_list['f'].append(frame[i].unsqueeze(0))
                 batch_list['m'].append(masks[i, o].unsqueeze(0))
-                batch_list['o'].append((torch.sum(masks[i, 1:o].unsqueeze(0), dim=1) +
-                                        torch.sum(masks[i, o + 1:n_objects[i] + 1].unsqueeze(0), dim=1)).clamp(0, 1))
+                batch_list['o'].append(
+                    (torch.sum(masks[i, 1:o].unsqueeze(0), dim=1) +
+                     torch.sum(masks[i, o + 1:n_objects[i] + 1].unsqueeze(0), dim=1)).clamp(0, 1))
 
         # make Batch
         for k, v in batch_list.items():
@@ -291,8 +296,10 @@ class STM(torch.nn.Module):
         }
         for i in range(B):
             # expand to ---  no, c, h, w
-            _k4e, _v4e = k4[i].expand(n_objects[i], -1, -1, -1), v4[i].expand(n_objects[i], -1, -1, -1)
-            _r3e, _r2e = r3[i].expand(n_objects[i], -1, -1, -1), r2[i].expand(n_objects[i], -1, -1, -1)
+            _k4e, _v4e = k4[i].expand(n_objects[i], -1, -1,
+                                      -1), v4[i].expand(n_objects[i], -1, -1, -1)
+            _r3e, _r2e = r3[i].expand(n_objects[i], -1, -1,
+                                      -1), r2[i].expand(n_objects[i], -1, -1, -1)
             _key = keys[i, 1:n_objects[i] + 1]
             _value = values[i, 1:n_objects[i] + 1]
             # print(_k4e.shape) # torch.Size([n_obj, 128, 30, 54])
@@ -312,7 +319,8 @@ class STM(torch.nn.Module):
         # memory select kv:(1, K, C, T, H, W)
         # print(keys.shape)     # torch.Size([1, 11, 128, 1, 30, 54])
         # print(values.shape)   # torch.Size([1, 11, 512, 1, 30, 54])
-        m4, viz = self.memory(batch_list['key'], batch_list['value'], batch_list['k4e'], batch_list['v4e'])
+        m4, viz = self.memory(batch_list['key'], batch_list['value'], batch_list['k4e'],
+                              batch_list['v4e'])
         # print(m4.shape)       # torch.Size([1, 1024, 30, 54])
         # print(viz.shape)      # torch.Size([1, 3240, 1620])
         logits = self.decoder(m4, batch_list['r3e'], batch_list['r2e'])
