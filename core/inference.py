@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:26
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-11 15:56:25
+# @Last Modified time: 2020-04-11 22:20:18
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -62,7 +62,7 @@ def inference_net(cfg):
             n_frames = est_masks.size(0)
             for i in tqdm(range(n_frames), leave=False, desc=video_name):
                 frame = frames[i]
-                est_mask = est_masks[i].cpu().numpy()
+                est_mask = est_masks[i]
                 segmentation = utils.helpers.get_segmentation(frame, est_mask, {
                     'mean': cfg.CONST.DATASET_MEAN,
                     'std': cfg.CONST.DATASET_STD,

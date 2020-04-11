@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-11 10:23:14
+# @Last Modified time: 2020-04-11 22:10:48
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -341,9 +341,8 @@ class STM(torch.nn.Module):
                     keys, values = this_keys, this_values
 
                 # Segment
-                logit = self.segment(frames[i][t].unsqueeze(dim=0), this_keys, this_values,
-                                     n_objects[i])
-                _est_masks[t] = F.softmax(logit, dim=1)
+                _est_masks[t] = self.segment(frames[i][t].unsqueeze(dim=0), this_keys, this_values,
+                                             n_objects[i]).squeeze(dim=0)
 
             est_masks.append(_est_masks)
 
