@@ -103,8 +103,5 @@ ENV/
 # macOS
 .DS_Store
 
-# Datasets
-datasets/
-
 # Output
 output/

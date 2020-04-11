@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-10 14:50:19
+# @Last Modified time: 2020-04-11 10:31:57
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -29,8 +29,6 @@ def collate_fn(batch_samples):
         frames.append(bs[2])
         masks.append(bs[3])
 
-    frames = torch.stack(frames, 0)
-    masks = torch.stack(masks, 0)
     return video_names, n_objects, frames, masks
 
 
@@ -56,13 +54,23 @@ class Dataset(torch.utils.data.dataset.Dataset):
         masks = []
 
         for i in range(video['n_frames']):
-            frames.append(np.array(IO.get(video['frames'][i]).convert('RGB')).astype(np.float32))
-            masks.append(np.array(IO.get(video['masks'][i]).convert('P')).astype(np.uint8))
+            frame = np.array(IO.get(video['frames'][i]).convert('RGB'))
+            mask = IO.get(video['masks'][i]).convert('P')
+            frames.append(np.array(frame).astype(np.float32))
+            masks.append(self._to_onehot(np.array(mask).astype(np.uint8), self.options['K']))
 
         if self.transforms is not None:
             frames, masks = self.transforms(frames, masks)
 
         return video['name'], video['n_objects'], frames, masks
+
+    def _to_onehot(self, mask, k):
+        h, w = mask.shape
+        one_hot_masks = np.zeros((k, h, w), dtype=np.uint8)
+        for k_idx in range(k):
+            one_hot_masks[k_idx] = (mask == k_idx)
+
+        return one_hot_masks
 
 
 class DavisDataset(object):
@@ -76,7 +84,7 @@ class DavisDataset(object):
     def get_dataset(self, subset):
         file_list = self._get_file_list(self.cfg, self._get_subset(subset))
         transforms = self._get_transforms(self.cfg, subset)
-        return Dataset(file_list, transforms)
+        return Dataset(file_list, transforms, {'K': self.cfg.DATASETS.DAVIS.K})
 
     def _get_transforms(self, cfg, subset):
         if subset == DatasetSubset.TRAIN:
@@ -130,4 +138,4 @@ class DavisDataset(object):
 
 DATASET_LOADER_MAPPING = {
     'DAVIS': DavisDataset
-}
+}  # yapf: disable

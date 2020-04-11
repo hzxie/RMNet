@@ -2,11 +2,9 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-10 14:49:59
+# @Last Modified time: 2020-04-11 13:57:47
 # @Email:  cshzxie@gmail.com
 
-import cv2
-import math
 import numpy as np
 import torch
 
@@ -34,7 +32,9 @@ class ToTensor(object):
         pass
 
     def __call__(self, frames, masks):
-        return torch.from_numpy(np.array(frames)).float(), torch.from_numpy(np.array(masks))
+        frames = torch.from_numpy(np.array(frames)).float().permute(0, 3, 1, 2)
+        masks = torch.from_numpy(np.array(masks))
+        return frames, masks
 
 
 class Normalize(object):

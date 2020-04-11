@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-10 14:51:28
+# @Last Modified time: 2020-04-10 20:40:06
 # @Email:  cshzxie@gmail.com
 
 from easydict import EasyDict as edict
@@ -15,6 +15,7 @@ cfg                                              = __C
 #
 __C.DATASETS                                     = edict()
 __C.DATASETS.DAVIS                               = edict()
+__C.DATASETS.DAVIS.K                             = 11
 __C.DATASETS.DAVIS.INDEXING_FILE_PATH            = './datasets/DAVIS.json'
 __C.DATASETS.DAVIS.IMG_FILE_PATH                 = '/home/SENSETIME/xiehaozhe/Datasets/DAVIS/JPEGImages/480p/%s/%05d.jpg'
 __C.DATASETS.DAVIS.ANNOTATION_FILE_PATH          = '/home/SENSETIME/xiehaozhe/Datasets/DAVIS/Annotations/480p/%s/%05d.png'
@@ -36,7 +37,7 @@ __C.DATASET.TEST_DATASET                         = 'DAVIS'
 # Constants
 #
 __C.CONST                                        = edict()
-__C.CONST.N_WORKERS                              = 20
+__C.CONST.N_WORKERS                              = 2
 __C.CONST.DATASET_MEAN                           = [0.485, 0.456, 0.406]
 __C.CONST.DATASET_STD                            = [0.229, 0.224, 0.225]
 
@@ -45,6 +46,12 @@ __C.CONST.DATASET_STD                            = [0.229, 0.224, 0.225]
 #
 __C.DIR                                          = edict()
 __C.DIR.OUT_PATH                                 = './output'
+
+#
+# Networks
+#
+__C.NETWORKS                                     = edict()
+__C.NETWORKS.MEM_EVERY                           = 5
 
 #
 # Memcached
