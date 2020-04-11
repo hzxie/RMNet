@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-10 20:40:06
+# @Last Modified time: 2020-04-11 17:12:09
 # @Email:  cshzxie@gmail.com
 
 from easydict import EasyDict as edict
@@ -38,6 +38,7 @@ __C.DATASET.TEST_DATASET                         = 'DAVIS'
 #
 __C.CONST                                        = edict()
 __C.CONST.N_WORKERS                              = 2
+__C.CONST.INGORE_IDX                             = 255
 __C.CONST.DATASET_MEAN                           = [0.485, 0.456, 0.406]
 __C.CONST.DATASET_STD                            = [0.229, 0.224, 0.225]
 
@@ -74,3 +75,10 @@ __C.PAVI.ENABLED                                 = False
 __C.TRAIN                                        = edict()
 __C.TRAIN.BATCH_SIZE                             = 4
 __C.TRAIN.N_EPOCHS                               = 150
+
+
+#
+# Test
+#
+__C.TEST                                         = edict()
+__C.TEST.VISUALIZE_EVERY                         = 5

@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-11 16:01:11
+# @Last Modified time: 2020-04-11 17:24:24
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -18,6 +18,7 @@ def var_or_cuda(x):
 
 
 def get_segmentation(frame, mask, normalization_parameters):
+    mask = mask.cpu().numpy()
     if frame is None:
         return mask
 
