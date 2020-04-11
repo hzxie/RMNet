@@ -3,6 +3,7 @@ easydict
 opencv-python
 pillow
 pprint
+scipy
 torch >= 1.0.0
 tensorboardX==1.2
 tqdm

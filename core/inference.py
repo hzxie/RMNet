@@ -2,14 +2,18 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:26
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-10 14:50:58
+# @Last Modified time: 2020-04-11 15:56:25
 # @Email:  cshzxie@gmail.com
 
 import logging
+import os
 import torch
 
 import utils.data_loaders
 import utils.helpers
+
+from tqdm import tqdm
+from PIL import Image
 
 from models.stm import STM
 
@@ -43,9 +47,24 @@ def inference_net(cfg):
     stm.eval()
 
     # The inference loop
-    for idx, (video_name, n_objects, frames, _) in enumerate(test_data_loader):
-        video_name = video_name[0]
-        n_objects = n_objects[0]
-        frames = utils.helpers.var_or_cuda(frames[0])
+    for idx, (video_name, n_objects, frames, masks) in enumerate(test_data_loader):
+        with torch.no_grad():
+            est_probs = stm(frames, masks, n_objects)
 
-        print(frames.shape)
+            video_name = video_name[0]
+            output_folder = os.path.join(cfg.DIR.OUT_PATH, 'benchmark', cfg.DATASET.TEST_DATASET,
+                                         video_name)
+            if not os.path.exists(output_folder):
+                os.makedirs(output_folder)
+
+            frames = frames[0]
+            est_masks = torch.argmax(est_probs[0], dim=1)
+            n_frames = est_masks.size(0)
+            for i in tqdm(range(n_frames), leave=False, desc=video_name):
+                frame = frames[i]
+                est_mask = est_masks[i].cpu().numpy()
+                segmentation = utils.helpers.get_segmentation(frame, est_mask, {
+                    'mean': cfg.CONST.DATASET_MEAN,
+                    'std': cfg.CONST.DATASET_STD,
+                })
+                Image.fromarray(segmentation).save(os.path.join(output_folder, '%05d.jpg' % i))

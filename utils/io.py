@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2019-08-02 10:22:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-10 09:37:32
+# @Last Modified time: 2020-04-11 10:28:06
 # @Email:  cshzxie@gmail.com
 
 import io
@@ -26,8 +26,10 @@ if cfg.MEMCACHED.ENABLED:
 class IO:
     @classmethod
     def get(cls, file_path):
-        _, file_extension = os.path.splitext(file_path)
+        if not os.path.exists(file_path):
+            return None
 
+        _, file_extension = os.path.splitext(file_path)
         if file_extension in ['.png', '.jpg']:
             return cls._read_img(file_path)
         else:
