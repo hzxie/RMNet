@@ -2,10 +2,11 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-11 22:20:26
+# @Last Modified time: 2020-04-12 13:44:17
 # @Email:  cshzxie@gmail.com
 
 import logging
+import numpy as np
 import torch
 
 import utils.data_loaders
@@ -69,24 +70,37 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
 
             _loss = ce_loss(est_probs, masks).item()
             test_losses.update(_loss)
-            _metrics = Metrics.get(est_probs, masks)
+            _metrics = Metrics.get(est_masks, masks)
             test_metrics.update(_metrics)
 
             if test_writer is not None and idx < 3:
                 for i in tqdm(range(0, n_frames, cfg.TEST.VISUALIZE_EVERY),
                               leave=False,
                               desc=video_name):
-                    frame = frames[i]
-                    est_mask = est_masks[i]
-                    segmentation = utils.helpers.get_segmentation(frame, est_mask, {
+                    est_segmentation = utils.helpers.get_segmentation(
+                        frames[i], est_masks[i], {
+                            'mean': cfg.CONST.DATASET_MEAN,
+                            'std': cfg.CONST.DATASET_STD,
+                        })
+                    gt_segmentation = utils.helpers.get_segmentation(frames[i], masks[i], {
                         'mean': cfg.CONST.DATASET_MEAN,
                         'std': cfg.CONST.DATASET_STD,
                     })
-                    test_writer.add_image('%s/Frame%03d' % (video_name, i), segmentation,
-                                          epoch_idx)
+                    test_writer.add_image(
+                        '%s/Frame%03d' % (video_name, i),
+                        np.concatenate((est_segmentation, gt_segmentation), axis=1), epoch_idx)
 
             logging.info('Test[%d/%d] VideoName = %s CE = %.4f Metrics = %s' %
                          (idx + 1, n_videos, video_name, _loss, ['%.4f' % m for m in _metrics]))
 
     # Print testing results
-    print('============================ TEST RESULTS ============================')
+    logging.info('[Test Summary] CE = %.4f Metrics = %s' %
+                 (test_losses.avg(), ['%.4f' % tm for tm in test_metrics.avg()]))
+
+    # Add testing results to TensorBoard
+    if test_writer is not None:
+        test_writer.add_scalar('Loss/Epoch', test_losses.avg(), epoch_idx)
+        for i, metric in enumerate(test_metrics.items):
+            test_writer.add_scalar('Metric/%s' % metric, test_metrics.avg(i), epoch_idx)
+
+    return Metrics(cfg.TEST.METRIC_NAME, test_metrics.avg())

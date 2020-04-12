@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-11 10:31:57
+# @Last Modified time: 2020-04-12 11:44:42
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -11,6 +11,7 @@ import numpy as np
 import torch.utils.data.dataset
 
 import utils.data_transforms
+import utils.helpers
 
 from enum import Enum, unique
 
@@ -57,20 +58,13 @@ class Dataset(torch.utils.data.dataset.Dataset):
             frame = np.array(IO.get(video['frames'][i]).convert('RGB'))
             mask = IO.get(video['masks'][i]).convert('P')
             frames.append(np.array(frame).astype(np.float32))
-            masks.append(self._to_onehot(np.array(mask).astype(np.uint8), self.options['K']))
+            masks.append(
+                utils.helpers.to_onehot(np.array(mask).astype(np.uint8), self.options['K']))
 
         if self.transforms is not None:
             frames, masks = self.transforms(frames, masks)
 
         return video['name'], video['n_objects'], frames, masks
-
-    def _to_onehot(self, mask, k):
-        h, w = mask.shape
-        one_hot_masks = np.zeros((k, h, w), dtype=np.uint8)
-        for k_idx in range(k):
-            one_hot_masks[k_idx] = (mask == k_idx)
-
-        return one_hot_masks
 
 
 class DavisDataset(object):

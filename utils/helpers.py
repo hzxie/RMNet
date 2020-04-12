@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-11 17:24:24
+# @Last Modified time: 2020-04-12 11:44:52
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -15,6 +15,15 @@ def var_or_cuda(x):
         x = x.cuda(non_blocking=True)
 
     return x
+
+
+def to_onehot(mask, k):
+    h, w = mask.shape
+    one_hot_masks = np.zeros((k, h, w), dtype=np.uint8)
+    for k_idx in range(k):
+        one_hot_masks[k_idx] = (mask == k_idx)
+
+    return one_hot_masks
 
 
 def get_segmentation(frame, mask, normalization_parameters):

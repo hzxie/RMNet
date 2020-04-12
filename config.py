@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-11 17:12:09
+# @Last Modified time: 2020-04-12 10:13:33
 # @Email:  cshzxie@gmail.com
 
 from easydict import EasyDict as edict
@@ -52,7 +52,7 @@ __C.DIR.OUT_PATH                                 = './output'
 # Networks
 #
 __C.NETWORKS                                     = edict()
-__C.NETWORKS.MEM_EVERY                           = 5
+__C.NETWORKS.MEMORIZE_EVERY                      = 5
 
 #
 # Memcached
@@ -82,3 +82,4 @@ __C.TRAIN.N_EPOCHS                               = 150
 #
 __C.TEST                                         = edict()
 __C.TEST.VISUALIZE_EVERY                         = 5
+__C.TEST.MAIN_METRIC_NAME                        = 'JF-Mean'
