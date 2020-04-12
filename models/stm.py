@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-12 09:24:58
+# @Last Modified time: 2020-04-12 09:58:21
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -188,7 +188,7 @@ class STM(torch.nn.Module):
         self.kv_query = KeyValue(1024, keydim=128, valdim=512)
         self.memory = Memory()
         self.decoder = Decoder(256)
-        self.mem_every = cfg.NETWORKS.MEM_EVERY
+        self.memorize_every = cfg.NETWORKS.MEMORIZE_EVERY
 
     def pad_memory(self, mems, n_objects, K):
         pad_mems = []
@@ -319,7 +319,7 @@ class STM(torch.nn.Module):
         est_masks = []
         for i in range(batch_size):
             n_frames, k, h, w = masks[i].size()
-            to_memorize = [j for j in range(0, n_frames, self.mem_every)]
+            to_memorize = [j for j in range(0, n_frames, self.memorize_every)]
 
             _est_masks = torch.zeros(n_frames, k, h, w).float()
             _est_masks[0] = masks[i][0]

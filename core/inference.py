@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:26
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-12 09:16:37
+# @Last Modified time: 2020-04-12 09:58:43
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -68,6 +68,3 @@ def inference_net(cfg):
                     'std': cfg.CONST.DATASET_STD,
                 })
                 Image.fromarray(segmentation).save(os.path.join(output_folder, '%05d.jpg' % i))
-
-            # CUDA out of memory happens during the evaluation, therefore we use empty cache.
-            torch.cuda.empty_cache()
