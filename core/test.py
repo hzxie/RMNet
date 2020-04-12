@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-12 13:44:17
+# @Last Modified time: 2020-04-12 14:25:21
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -103,4 +103,4 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
         for i, metric in enumerate(test_metrics.items):
             test_writer.add_scalar('Metric/%s' % metric, test_metrics.avg(i), epoch_idx)
 
-    return Metrics(cfg.TEST.METRIC_NAME, test_metrics.avg())
+    return Metrics(cfg.TEST.MAIN_METRIC_NAME, test_metrics.avg())
