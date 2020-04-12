@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-11 22:10:48
+# @Last Modified time: 2020-04-12 09:24:58
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -326,9 +326,10 @@ class STM(torch.nn.Module):
 
             keys = None
             values = None
+            prev_mask = masks[i][0]
             for t in range(1, n_frames):
                 # Memorize
-                prev_mask = utils.helpers.var_or_cuda(_est_masks[t - 1])
+                prev_mask = utils.helpers.var_or_cuda(prev_mask)
                 prev_key, prev_value = self.memorize(frames[i][t - 1].unsqueeze(dim=0),
                                                      prev_mask.unsqueeze(dim=0), n_objects[i])
                 if t - 1 == 0:
@@ -343,6 +344,7 @@ class STM(torch.nn.Module):
                 # Segment
                 _est_masks[t] = self.segment(frames[i][t].unsqueeze(dim=0), this_keys, this_values,
                                              n_objects[i]).squeeze(dim=0)
+                prev_mask = F.softmax(_est_masks[t], dim=0)
 
             est_masks.append(_est_masks)
 
