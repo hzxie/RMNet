@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-12 09:58:21
+# @Last Modified time: 2020-04-12 19:52:19
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -125,7 +125,6 @@ class Decoder(torch.nn.Module):
         self.ResMM = ResBlock(mdim, mdim)
         self.RF3 = Refine(512, mdim)    # 1/8 -> 1/4
         self.RF2 = Refine(256, mdim)    # 1/4 -> 1
-
         self.pred2 = torch.nn.Conv2d(mdim, 2, kernel_size=3, padding=1, stride=1)
 
     def forward(self, r4, r3, r2):

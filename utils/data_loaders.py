@@ -2,12 +2,12 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-12 11:44:42
+# @Last Modified time: 2020-04-12 19:40:53
 # @Email:  cshzxie@gmail.com
 
 import json
-import logging
 import numpy as np
+import random
 import torch.utils.data.dataset
 
 import utils.data_transforms
@@ -45,6 +45,7 @@ class Dataset(torch.utils.data.dataset.Dataset):
         self.options = options
         self.file_list = file_list
         self.transforms = transforms
+        self.frame_step = 1
 
     def __len__(self):
         return len(self.file_list)
@@ -54,17 +55,36 @@ class Dataset(torch.utils.data.dataset.Dataset):
         frames = []
         masks = []
 
-        for i in range(video['n_frames']):
-            frame = np.array(IO.get(video['frames'][i]).convert('RGB'))
-            mask = IO.get(video['masks'][i]).convert('P')
+        frame_indexes = self._get_frame_indexes(video['n_frames'], self.options['n_max_frames'])
+        for fi in frame_indexes:
+            frame = np.array(IO.get(video['frames'][fi]).convert('RGB'))
             frames.append(np.array(frame).astype(np.float32))
+
+            mask = IO.get(video['masks'][fi])
+            mask = mask.convert('P') if mask is not None else np.zeros(frame.shape[:-1])
             masks.append(
-                utils.helpers.to_onehot(np.array(mask).astype(np.uint8), self.options['K']))
+                utils.helpers.to_onehot(
+                    np.array(mask).astype(np.uint8), self.options['n_max_objects'] + 1))
 
         if self.transforms is not None:
             frames, masks = self.transforms(frames, masks)
 
         return video['name'], video['n_objects'], frames, masks
+
+    def _get_frame_indexes(self, n_frames, n_max_frames):
+        if n_frames <= n_max_frames or n_max_frames == 0:
+            return range(n_frames)
+
+        frame_begin_idx = n_frames - n_max_frames * self.frame_step
+        frame_begin_idx = random.randint(0, frame_begin_idx) if frame_begin_idx > 0 else 0
+        frame_end_idx = frame_begin_idx + n_max_frames * self.frame_step
+        if frame_end_idx > n_frames:
+            frame_end_idx = n_frames
+
+        return [i for i in range(frame_begin_idx, frame_end_idx, self.frame_step)]
+
+    def set_frame_step(self, frame_step):
+        self.frame_step = frame_step
 
 
 class DavisDataset(object):
@@ -78,11 +98,26 @@ class DavisDataset(object):
     def get_dataset(self, subset):
         file_list = self._get_file_list(self.cfg, self._get_subset(subset))
         transforms = self._get_transforms(self.cfg, subset)
-        return Dataset(file_list, transforms, {'K': self.cfg.DATASETS.DAVIS.K})
+
+        n_max_frames = self.cfg.TRAIN.N_MAX_FRAMES if subset == DatasetSubset.TRAIN else 0
+        n_max_objects = self.cfg.TRAIN.N_MAX_OBJECTS if subset == DatasetSubset.TRAIN else self.cfg.DATASETS.DAVIS.N_MAX_OBJECTS
+        return Dataset(file_list, transforms, {
+            'n_max_frames': n_max_frames,
+            'n_max_objects': n_max_objects
+        })
 
     def _get_transforms(self, cfg, subset):
         if subset == DatasetSubset.TRAIN:
-            return utils.data_transforms.Compose([])
+            return utils.data_transforms.Compose([{
+                'callback': 'Normalize',
+                'parameters': {
+                    'mean': cfg.CONST.DATASET_MEAN,
+                    'std': cfg.CONST.DATASET_STD
+                }
+            }, {
+                'callback': 'ToTensor',
+                'parameters': None
+            }])
         else:
             return utils.data_transforms.Compose([
                 {
@@ -108,10 +143,6 @@ class DavisDataset(object):
 
     def _get_file_list(self, cfg, subset):
         file_list = []
-        if subset not in self.videos:
-            logging.warn('The subset %s for DAVIS is not available.' % subset)
-            return file_list
-
         for v in self.videos[subset]:
             file_list.append({
                 'name': v['name'],
