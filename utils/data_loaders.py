@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-12 19:40:53
+# @Last Modified time: 2020-04-13 10:43:48
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -69,7 +69,9 @@ class Dataset(torch.utils.data.dataset.Dataset):
         if self.transforms is not None:
             frames, masks = self.transforms(frames, masks)
 
-        return video['name'], video['n_objects'], frames, masks
+        n_objects = video['n_objects'] if video['n_objects'] <= self.options[
+            'n_max_objects'] else self.options['n_max_objects']
+        return video['name'], n_objects, frames, masks
 
     def _get_frame_indexes(self, n_frames, n_max_frames):
         if n_frames <= n_max_frames or n_max_frames == 0:
