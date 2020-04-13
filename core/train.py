@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-13 11:11:25
+# @Last Modified time: 2020-04-13 20:10:19
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -107,7 +107,8 @@ def train_net(cfg):
         for batch_idx, (video_name, n_objects, frames, masks) in enumerate(train_data_loader):
             data_time.update(time() - batch_end_time)
 
-            est_probs = stm(frames, masks, n_objects)
+            est_probs = utils.helpers.get_mask_probabilities(stm, frames, masks, n_objects,
+                                                             cfg.NETWORKS.MEMORIZE_EVERY)
             loss = None
             for i in range(cfg.TRAIN.BATCH_SIZE):
                 _loss = ce_loss(est_probs[i], torch.argmax(masks[i], dim=1))

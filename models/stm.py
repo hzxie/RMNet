@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-13 11:06:53
+# @Last Modified time: 2020-04-13 20:11:15
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -187,7 +187,6 @@ class STM(torch.nn.Module):
         self.kv_query = KeyValue(1024, keydim=128, valdim=512)
         self.memory = Memory()
         self.decoder = Decoder(256)
-        self.memorize_every = cfg.NETWORKS.MEMORIZE_EVERY
 
     def pad_memory(self, mems, n_objects, K):
         pad_mems = []
@@ -313,37 +312,8 @@ class STM(torch.nn.Module):
         # print(logit.shape)    # torch.Size([1, 11, 480, 854])
         return logit
 
-    def forward(self, frames, masks, n_objects):
-        batch_size = len(frames)
-        est_probs = []
-        for i in range(batch_size):
-            n_frames, k, h, w = masks[i].size()
-            to_memorize = [j for j in range(0, n_frames, self.memorize_every)]
-
-            _est_masks = torch.zeros(n_frames, k, h, w).float()
-            _est_masks[0] = masks[i][0]
-
-            keys = None
-            values = None
-            for t in range(1, n_frames):
-                # Memorize
-                prev_mask = utils.helpers.var_or_cuda(_est_masks[t - 1])
-                prev_key, prev_value = self.memorize(frames[i][t - 1].unsqueeze(dim=0),
-                                                     prev_mask.unsqueeze(dim=0), n_objects[i])
-                if t - 1 == 0:
-                    this_keys, this_values = prev_key, prev_value
-                else:
-                    this_keys = torch.cat([keys, prev_key], dim=3)
-                    this_values = torch.cat([values, prev_value], dim=3)
-
-                if t - 1 in to_memorize:
-                    keys, values = this_keys, this_values
-
-                # Segment
-                logit = self.segment(frames[i][t].unsqueeze(dim=0), this_keys, this_values,
-                                     n_objects[i]).squeeze(dim=0)
-                _est_masks[t] = F.softmax(logit, dim=0)
-
-            est_probs.append(_est_masks)
-
-        return est_probs
+    def forward(self, *args, **kwargs):
+        if args[1].dim() > 4:
+            return self.segment(*args, **kwargs)
+        else:
+            return self.memorize(*args, **kwargs)

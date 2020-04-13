@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-13 10:43:48
+# @Last Modified time: 2020-04-13 20:13:23
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -164,5 +164,5 @@ class DavisDataset(object):
 
 
 DATASET_LOADER_MAPPING = {
-    'DAVIS': DavisDataset
+    'DAVIS': DavisDataset,
 }  # yapf: disable

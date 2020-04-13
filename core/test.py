@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-13 11:11:22
+# @Last Modified time: 2020-04-13 20:10:29
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -59,7 +59,8 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
 
     for idx, (video_name, n_objects, frames, masks) in enumerate(test_data_loader):
         with torch.no_grad():
-            est_probs = stm(frames, masks, n_objects)
+            est_probs = utils.helpers.get_mask_probabilities(stm, frames, masks, n_objects,
+                                                             cfg.NETWORKS.MEMORIZE_EVERY)
 
             video_name = video_name[0]
             frames = frames[0]
@@ -88,7 +89,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
                     })
                     test_writer.add_image(
                         '%s/Frame%03d' % (video_name, i),
-                        np.concatenate((est_segmentation, gt_segmentation), axis=1), epoch_idx)
+                        np.concatenate((est_segmentation, gt_segmentation), axis=2), epoch_idx)
 
             logging.info('Test[%d/%d] VideoName = %s CE = %.4f Metrics = %s' %
                          (idx + 1, n_videos, video_name, _loss, ['%.4f' % m for m in _metrics]))

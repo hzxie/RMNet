@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-13 10:33:46
+# @Last Modified time: 2020-04-13 16:18:22
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -70,19 +70,20 @@ __C.MEMCACHED.CLIENT_CONFIG                      = '/mnt/lustre/share/memcached_
 # Train
 #
 __C.TRAIN                                        = edict()
-__C.TRAIN.BATCH_SIZE                             = 1
+__C.TRAIN.BATCH_SIZE                             = 4
 __C.TRAIN.N_EPOCHS                               = 150
-__C.TRAIN.N_MAX_OBJECTS                          = 1
+__C.TRAIN.N_MAX_OBJECTS                          = 2
 __C.TRAIN.N_MAX_FRAMES                           = 3
 __C.TRAIN.LEARNING_RATE                          = 1e-5
-__C.TRAIN.LR_MILESTONES                          = [50]
+__C.TRAIN.LR_MILESTONES                          = [100]
 __C.TRAIN.GAMMA                                  = .5
 __C.TRAIN.BETAS                                  = (.9, .999)
 __C.TRAIN.WEIGHT_DECAY                           = 0
+__C.TRAIN.SAVE_FREQ                              = 20
 
 #
 # Test
 #
 __C.TEST                                         = edict()
-__C.TEST.VISUALIZE_EVERY                         = 5
+__C.TEST.VISUALIZE_EVERY                         = 10
 __C.TEST.MAIN_METRIC_NAME                        = 'JF-Mean'
