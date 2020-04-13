@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-12 11:44:52
+# @Last Modified time: 2020-04-12 19:59:12
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -15,6 +15,23 @@ def var_or_cuda(x):
         x = x.cuda(non_blocking=True)
 
     return x
+
+
+def init_weights(m):
+    if type(m) == torch.nn.Conv2d or type(m) == torch.nn.ConvTranspose2d:
+        torch.nn.init.kaiming_normal_(m.weight)
+        if m.bias is not None:
+            torch.nn.init.constant_(m.bias, 0)
+    elif type(m) == torch.nn.BatchNorm2d:
+        torch.nn.init.constant_(m.weight, 1)
+        torch.nn.init.constant_(m.bias, 0)
+    elif type(m) == torch.nn.Linear:
+        torch.nn.init.normal_(m.weight, 0, 0.01)
+        torch.nn.init.constant_(m.bias, 0)
+
+
+def count_parameters(network):
+    return sum(p.numel() for p in network.parameters())
 
 
 def to_onehot(mask, k):

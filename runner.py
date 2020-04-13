@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:00:36
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-11 16:00:59
+# @Last Modified time: 2020-04-12 19:40:13
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -27,6 +27,7 @@ from core.inference import inference_net
 
 def get_args_from_command_line():
     parser = argparse.ArgumentParser(description='The argument parser of R2Net runner')
+    parser.add_argument('--exp', dest='exp_name', help='Experiment Name', default=None, type=str)
     parser.add_argument('--gpu', dest='gpu_id', help='GPU device to use', default=None, type=str)
     parser.add_argument('--test', dest='test', help='Test neural networks', action='store_true')
     parser.add_argument('--inference',
@@ -47,6 +48,8 @@ def main():
 
     if args.gpu_id is not None:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
+    if args.exp_name is not None:
+        cfg.CONST.EXP_NAME = args.exp_name
     if args.weights is not None:
         cfg.CONST.WEIGHTS = args.weights
 
