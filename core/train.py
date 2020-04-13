@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-13 10:02:41
+# @Last Modified time: 2020-04-13 11:11:25
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -100,6 +100,7 @@ def train_net(cfg):
         losses = AverageMeter()
 
         stm.train()
+        torch.autograd.set_detect_anomaly(True)
 
         batch_end_time = time()
         n_batches = len(train_data_loader)
@@ -128,7 +129,7 @@ def train_net(cfg):
             batch_time.update(time() - batch_end_time)
             batch_end_time = time()
             logging.info(
-                '[Epoch %d/%d][Batch %d/%d] BatchTime = %.3f (s) DataTime = %.3f (s) Loss = %s' %
+                '[Epoch %d/%d][Batch %d/%d] BatchTime = %.3f (s) DataTime = %.3f (s) Loss = %.4f' %
                 (epoch_idx, cfg.TRAIN.N_EPOCHS, batch_idx + 1, n_batches, batch_time.val(),
                  data_time.val(), losses.val()))
 

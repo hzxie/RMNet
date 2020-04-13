@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-12 19:52:19
+# @Last Modified time: 2020-04-13 11:06:53
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -315,7 +315,7 @@ class STM(torch.nn.Module):
 
     def forward(self, frames, masks, n_objects):
         batch_size = len(frames)
-        est_masks = []
+        est_probs = []
         for i in range(batch_size):
             n_frames, k, h, w = masks[i].size()
             to_memorize = [j for j in range(0, n_frames, self.memorize_every)]
@@ -325,10 +325,9 @@ class STM(torch.nn.Module):
 
             keys = None
             values = None
-            prev_mask = masks[i][0]
             for t in range(1, n_frames):
                 # Memorize
-                prev_mask = utils.helpers.var_or_cuda(prev_mask)
+                prev_mask = utils.helpers.var_or_cuda(_est_masks[t - 1])
                 prev_key, prev_value = self.memorize(frames[i][t - 1].unsqueeze(dim=0),
                                                      prev_mask.unsqueeze(dim=0), n_objects[i])
                 if t - 1 == 0:
@@ -341,10 +340,10 @@ class STM(torch.nn.Module):
                     keys, values = this_keys, this_values
 
                 # Segment
-                _est_masks[t] = self.segment(frames[i][t].unsqueeze(dim=0), this_keys, this_values,
-                                             n_objects[i]).squeeze(dim=0)
-                prev_mask = F.softmax(_est_masks[t], dim=0)
+                logit = self.segment(frames[i][t].unsqueeze(dim=0), this_keys, this_values,
+                                     n_objects[i]).squeeze(dim=0)
+                _est_masks[t] = F.softmax(logit, dim=0)
 
-            est_masks.append(_est_masks)
+            est_probs.append(_est_masks)
 
-        return est_masks
+        return est_probs
