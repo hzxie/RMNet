@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-13 16:18:22
+# @Last Modified time: 2020-04-14 14:07:13
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -72,7 +72,7 @@ __C.MEMCACHED.CLIENT_CONFIG                      = '/mnt/lustre/share/memcached_
 __C.TRAIN                                        = edict()
 __C.TRAIN.BATCH_SIZE                             = 4
 __C.TRAIN.N_EPOCHS                               = 150
-__C.TRAIN.N_MAX_OBJECTS                          = 2
+__C.TRAIN.N_MAX_OBJECTS                          = 3
 __C.TRAIN.N_MAX_FRAMES                           = 3
 __C.TRAIN.LEARNING_RATE                          = 1e-5
 __C.TRAIN.LR_MILESTONES                          = [100]

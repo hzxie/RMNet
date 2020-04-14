@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-13 20:11:50
+# @Last Modified time: 2020-04-14 14:06:12
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -41,6 +41,9 @@ def to_onehot(mask, k):
     for k_idx in range(k):
         one_hot_masks[k_idx] = (mask == k_idx)
 
+    if type(mask) == torch.Tensor:
+        one_hot_masks = torch.from_numpy(one_hot_masks)
+
     return one_hot_masks
 
 
@@ -51,6 +54,7 @@ def get_mask_probabilities(stm, frames, masks, n_objects, memorize_every):
         n_frames, k, h, w = masks[i].size()
         to_memorize = [j for j in range(0, n_frames, memorize_every)]
 
+        _n_objects = n_objects[i].item()
         _est_masks = torch.zeros(n_frames, k, h, w).float()
         _est_masks[0] = masks[i][0]
 
@@ -60,7 +64,7 @@ def get_mask_probabilities(stm, frames, masks, n_objects, memorize_every):
             # Memorize
             prev_mask = var_or_cuda(_est_masks[t - 1])
             prev_key, prev_value = stm(frames[i][t - 1].unsqueeze(dim=0),
-                                       prev_mask.unsqueeze(dim=0), n_objects[i])
+                                       prev_mask.unsqueeze(dim=0), _n_objects)
             if t - 1 == 0:
                 this_keys, this_values = prev_key, prev_value
             else:
@@ -72,7 +76,7 @@ def get_mask_probabilities(stm, frames, masks, n_objects, memorize_every):
 
             # Segment
             logit = stm(frames[i][t].unsqueeze(dim=0), this_keys, this_values,
-                        n_objects[i]).squeeze(dim=0)
+                        _n_objects).squeeze(dim=0)
             _est_masks[t] = F.softmax(logit, dim=0)
 
         est_probs.append(_est_masks)

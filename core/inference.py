@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:26
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-13 20:10:34
+# @Last Modified time: 2020-04-14 10:00:53
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -28,7 +28,6 @@ def inference_net(cfg):
         utils.data_loaders.DatasetSubset.TEST),
                                                    batch_size=1,
                                                    num_workers=cfg.CONST.N_WORKERS,
-                                                   collate_fn=utils.data_loaders.collate_fn,
                                                    pin_memory=True,
                                                    shuffle=False)
 
