@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-13 20:13:23
+# @Last Modified time: 2020-04-14 14:03:06
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -16,21 +16,6 @@ import utils.helpers
 from enum import Enum, unique
 
 from utils.io import IO
-
-
-def collate_fn(batch_samples):
-    video_names = []
-    n_objects = []
-    frames = []
-    masks = []
-
-    for bs in batch_samples:
-        video_names.append(bs[0])
-        n_objects.append(bs[1])
-        frames.append(bs[2])
-        masks.append(bs[3])
-
-    return video_names, n_objects, frames, masks
 
 
 @unique
@@ -59,18 +44,21 @@ class Dataset(torch.utils.data.dataset.Dataset):
         for fi in frame_indexes:
             frame = np.array(IO.get(video['frames'][fi]).convert('RGB'))
             frames.append(np.array(frame).astype(np.float32))
-
             mask = IO.get(video['masks'][fi])
             mask = mask.convert('P') if mask is not None else np.zeros(frame.shape[:-1])
-            masks.append(
-                utils.helpers.to_onehot(
-                    np.array(mask).astype(np.uint8), self.options['n_max_objects'] + 1))
+            masks.append(np.array(mask).astype(np.uint8))
 
+        # Number of objects in the masks
+        n_objects = min(video['n_objects'], self.options['n_max_objects'])
+
+        # Data preprocessing and augmentation
         if self.transforms is not None:
-            frames, masks = self.transforms(frames, masks)
+            frames, masks = self.transforms(frames, masks, n_objects)
 
-        n_objects = video['n_objects'] if video['n_objects'] <= self.options[
-            'n_max_objects'] else self.options['n_max_objects']
+        # Masks to One Hot: (H, W) -> (n_object, H, W)
+        masks = torch.stack(
+            [utils.helpers.to_onehot(m, self.options['n_max_objects'] + 1) for m in masks], dim=0)
+
         return video['name'], n_objects, frames, masks
 
     def _get_frame_indexes(self, n_frames, n_max_frames):
@@ -111,6 +99,12 @@ class DavisDataset(object):
     def _get_transforms(self, cfg, subset):
         if subset == DatasetSubset.TRAIN:
             return utils.data_transforms.Compose([{
+                'callback': 'RandomCrop',
+                'parameters': {
+                    'height': cfg.CONST.FRAME_SIZE,
+                    'width': cfg.CONST.FRAME_SIZE
+                }
+            }, {
                 'callback': 'Normalize',
                 'parameters': {
                     'mean': cfg.CONST.DATASET_MEAN,

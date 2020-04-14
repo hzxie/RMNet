@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-13 20:10:19
+# @Last Modified time: 2020-04-14 14:15:34
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -33,7 +33,6 @@ def train_net(cfg):
         utils.data_loaders.DatasetSubset.TRAIN),
                                                     batch_size=cfg.TRAIN.BATCH_SIZE,
                                                     num_workers=cfg.CONST.N_WORKERS,
-                                                    collate_fn=utils.data_loaders.collate_fn,
                                                     pin_memory=True,
                                                     shuffle=True,
                                                     drop_last=True)
@@ -41,7 +40,6 @@ def train_net(cfg):
         utils.data_loaders.DatasetSubset.VAL),
                                                   batch_size=1,
                                                   num_workers=cfg.CONST.N_WORKERS,
-                                                  collate_fn=utils.data_loaders.collate_fn,
                                                   pin_memory=True,
                                                   shuffle=False)
 
