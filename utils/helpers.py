@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-14 14:06:12
+# @Last Modified time: 2020-04-14 14:53:52
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -84,7 +84,7 @@ def get_mask_probabilities(stm, frames, masks, n_objects, memorize_every):
     return est_probs
 
 
-def get_segmentation(frame, mask, normalization_parameters):
+def get_segmentation(frame, mask, normalization_parameters, ignore_idx=255, alpha=0.4):
     mask = mask.cpu().numpy()
     if frame is None:
         return mask
@@ -95,7 +95,6 @@ def get_segmentation(frame, mask, normalization_parameters):
     frame = (frame * std + mean) * 255
     frame = frame.astype(np.uint8)
 
-    ALPHA = 0.4
     PALETTE = np.reshape([
         [0, 0, 0],
         [128, 0, 0],
@@ -123,7 +122,10 @@ def get_segmentation(frame, mask, normalization_parameters):
 
     objects = np.unique(mask)
     for o_id in objects[1:]:
-        foreground = frame * ALPHA + np.ones(frame.shape) * (1 - ALPHA) * np.array(PALETTE[o_id])
+        if o_id == ignore_idx:
+            continue
+
+        foreground = frame * alpha + np.ones(frame.shape) * (1 - alpha) * np.array(PALETTE[o_id])
         binary_mask = mask == o_id
 
         frame[binary_mask] = foreground[binary_mask]
