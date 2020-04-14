@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-14 14:55:18
+# @Last Modified time: 2020-04-14 16:39:51
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -105,18 +105,11 @@ def train_net(cfg):
         for batch_idx, (video_name, n_objects, frames, masks) in enumerate(train_data_loader):
             data_time.update(time() - batch_end_time)
 
-            est_probs = utils.helpers.get_mask_probabilities(stm, frames, masks, n_objects,
-                                                             cfg.NETWORKS.MEMORIZE_EVERY)
-            loss = None
-            for i in range(cfg.TRAIN.BATCH_SIZE):
-                _loss = ce_loss(est_probs[i], torch.argmax(masks[i], dim=1))
+            frames = utils.helpers.var_or_cuda(frames)
+            masks = utils.helpers.var_or_cuda(masks)
+            est_probs = stm(frames, masks, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
+            loss = ce_loss(utils.helpers.var_or_cuda(est_probs), torch.argmax(masks, dim=1))
 
-                if loss is None:
-                    loss = _loss
-                else:
-                    loss += _loss
-
-            loss /= cfg.TRAIN.BATCH_SIZE
             losses.update(loss.item())
             stm.zero_grad()
             loss.backward()
@@ -136,7 +129,7 @@ def train_net(cfg):
         epoch_end_time = time()
         train_writer.add_scalar('Loss/Epoch', losses.avg(), epoch_idx)
         logging.info(
-            '[Epoch %d/%d] EpochTime = %.3f (s) Losses = %s' %
+            '[Epoch %d/%d] EpochTime = %.3f (s) Loss = %.4f' %
             (epoch_idx, cfg.TRAIN.N_EPOCHS, epoch_end_time - epoch_start_time, losses.avg()))
 
         # Evaluate the current model

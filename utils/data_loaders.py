@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-14 14:29:34
+# @Last Modified time: 2020-04-14 14:57:10
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -53,7 +53,6 @@ class Dataset(torch.utils.data.dataset.Dataset):
 
         # Data preprocessing and augmentation
         if self.transforms is not None:
-            print(video['name'])
             frames, masks = self.transforms(frames, masks, n_objects)
 
         # Masks to One Hot: (H, W) -> (n_object, H, W)
