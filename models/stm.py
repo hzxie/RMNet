@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-14 16:50:57
+# @Last Modified time: 2020-04-14 19:23:03
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -345,8 +345,8 @@ class STM(torch.nn.Module):
     def forward(self, frames, masks, n_objects, memorize_every):
         batch_size, n_frames, k, h, w = masks.size()
         est_masks = torch.zeros(batch_size, n_frames, k, h, w).float()
-        # Put the tensor to CUDA during training
-        if memorize_every == 1:
+        # Fix Assertion Error:  all(map(lambda i: i.is_cuda, inputs))
+        if torch.cuda.device_count() > 1:
             est_masks = utils.helpers.var_or_cuda(est_masks)
 
         keys = None
