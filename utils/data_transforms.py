@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-14 14:07:40
+# @Last Modified time: 2020-04-14 14:55:37
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -70,6 +70,10 @@ class RandomCrop(object):
             # Detect bounding boxes
             for j in range(1, n_objects + 1):
                 _x_min, _x_max, _y_min, _y_max = self._get_bounding_boxes(masks[i] == j)
+                # Bug Fix: the object is out of current frame
+                if _x_min is None or _x_max is None or _y_min is None or _y_max is None:
+                    continue
+
                 x_min = min(x_min, _x_min)
                 x_max = max(x_max, _x_max)
                 y_min = min(y_min, _y_min)
@@ -102,9 +106,12 @@ class RandomCrop(object):
         return frames, masks
 
     def _get_bounding_boxes(self, mask):
-        rows = np.any(mask, axis=1)
-        cols = np.any(mask, axis=0)
-        x_min, x_max = np.where(cols)[0][[0, -1]]
-        y_min, y_max = np.where(rows)[0][[0, -1]]
+        rows = np.where(np.any(mask, axis=1))[0]
+        cols = np.where(np.any(mask, axis=0))[0]
+        if len(cols) == 0 or len(rows) == 0:
+            return None, None, None, None
+
+        x_min, x_max = cols[[0, -1]]
+        y_min, y_max = rows[[0, -1]]
 
         return x_min, x_max, y_min, y_max

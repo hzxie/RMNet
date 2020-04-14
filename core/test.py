@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-14 10:00:49
+# @Last Modified time: 2020-04-14 14:56:34
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -81,11 +81,11 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
                         frames[i], est_masks[i], {
                             'mean': cfg.CONST.DATASET_MEAN,
                             'std': cfg.CONST.DATASET_STD,
-                        })
+                        }, cfg.CONST.INGORE_IDX)
                     gt_segmentation = utils.helpers.get_segmentation(frames[i], masks[i], {
                         'mean': cfg.CONST.DATASET_MEAN,
                         'std': cfg.CONST.DATASET_STD,
-                    })
+                    }, cfg.CONST.INGORE_IDX)
                     test_writer.add_image(
                         '%s/Frame%03d' % (video_name, i),
                         np.concatenate((est_segmentation, gt_segmentation), axis=0), epoch_idx)
