@@ -2,16 +2,16 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-14 14:53:52
+# @Last Modified time: 2020-04-14 16:51:07
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
 import scipy.ndimage.morphology
 import torch
-import torch.nn.functional as F
 
 
 def var_or_cuda(x):
+    x = x.contiguous()
     if torch.cuda.is_available():
         x = x.cuda(non_blocking=True)
 
@@ -45,43 +45,6 @@ def to_onehot(mask, k):
         one_hot_masks = torch.from_numpy(one_hot_masks)
 
     return one_hot_masks
-
-
-def get_mask_probabilities(stm, frames, masks, n_objects, memorize_every):
-    batch_size = len(frames)
-    est_probs = []
-    for i in range(batch_size):
-        n_frames, k, h, w = masks[i].size()
-        to_memorize = [j for j in range(0, n_frames, memorize_every)]
-
-        _n_objects = n_objects[i].item()
-        _est_masks = torch.zeros(n_frames, k, h, w).float()
-        _est_masks[0] = masks[i][0]
-
-        keys = None
-        values = None
-        for t in range(1, n_frames):
-            # Memorize
-            prev_mask = var_or_cuda(_est_masks[t - 1])
-            prev_key, prev_value = stm(frames[i][t - 1].unsqueeze(dim=0),
-                                       prev_mask.unsqueeze(dim=0), _n_objects)
-            if t - 1 == 0:
-                this_keys, this_values = prev_key, prev_value
-            else:
-                this_keys = torch.cat([keys, prev_key], dim=3)
-                this_values = torch.cat([values, prev_value], dim=3)
-
-            if t - 1 in to_memorize:
-                keys, values = this_keys, this_values
-
-            # Segment
-            logit = stm(frames[i][t].unsqueeze(dim=0), this_keys, this_values,
-                        _n_objects).squeeze(dim=0)
-            _est_masks[t] = F.softmax(logit, dim=0)
-
-        est_probs.append(_est_masks)
-
-    return est_probs
 
 
 def get_segmentation(frame, mask, normalization_parameters, ignore_idx=255, alpha=0.4):
