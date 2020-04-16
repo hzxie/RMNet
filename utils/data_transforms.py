@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-16 16:32:16
+# @Last Modified time: 2020-04-16 20:38:19
 # @Email:  cshzxie@gmail.com
 
 import cv2
@@ -79,7 +79,7 @@ class Resize(object):
 
     def __call__(self, frames, masks, n_objects):
         n_frames = len(frames)
-        img_h, img_w = mask[0].shape
+        img_h, img_w = masks[0].shape
 
         height = img_h
         width = img_w
