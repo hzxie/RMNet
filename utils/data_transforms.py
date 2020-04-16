@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-16 20:38:19
+# @Last Modified time: 2020-04-16 22:13:54
 # @Email:  cshzxie@gmail.com
 
 import cv2
@@ -43,6 +43,24 @@ class ToTensor(object):
         return frames, masks
 
 
+class ReorganizeObjectID(object):
+    def __init__(self, parameters):
+        self.ignore_idx = parameters['ignore_idx']
+
+    def __call__(self, frames, masks, n_objects):
+        mask_indexes = np.unique(masks[0])
+        mask_indexes = mask_indexes[mask_indexes != self.ignore_idx]
+
+        for m_idx, m in enumerate(masks):
+            _m = np.zeros(m.shape)
+            for idx, mi in enumerate(mask_indexes):
+                _m[m == mi] = idx
+
+            masks[m_idx] = _m.astype(np.uint8)
+
+        return frames, masks
+
+
 class ToOneHot(object):
     def __init__(self, parameters):
         self.shuffle = parameters['shuffle']
@@ -78,7 +96,6 @@ class Resize(object):
         self.keep_ratio = parameters['keep_ratio']
 
     def __call__(self, frames, masks, n_objects):
-        n_frames = len(frames)
         img_h, img_w = masks[0].shape
 
         height = img_h

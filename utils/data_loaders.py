@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-16 20:27:20
+# @Last Modified time: 2020-04-16 22:12:28
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -51,7 +51,8 @@ class Dataset(torch.utils.data.dataset.Dataset):
         # Number of objects in the masks
         if 'n_objects' not in video:
             mask_indexes = np.unique(masks[0])
-            video['n_objects'] = np.max(mask_indexes[mask_indexes != self.options['ignore_idx']])
+            mask_indexes = mask_indexes[mask_indexes != self.options['ignore_idx']]
+            video['n_objects'] = len(mask_indexes) - 1
 
         n_objects = min(video['n_objects'], self.options['n_max_objects'])
 
@@ -65,15 +66,15 @@ class Dataset(torch.utils.data.dataset.Dataset):
         if n_frames <= n_max_frames or n_max_frames == 0:
             return range(n_frames)
 
-        frame_begin_idx = n_frames - (n_max_frames - 1) * self.frame_step
+        frame_begin_idx = n_frames - (n_max_frames - 1) * self.frame_step - 1
         frame_begin_idx = random.randint(0, frame_begin_idx) if frame_begin_idx > 0 else 0
         frame_end_idx = frame_begin_idx + (n_max_frames - 1) * self.frame_step
 
         # The frame_step can not be satisfied because the number of frames is not enough
         if frame_end_idx >= n_frames:
-            return sorted([random.sample([i for i in range(n_frames)], n_max_frames)])
+            return sorted(random.sample([i for i in range(n_frames)], n_max_frames))
 
-        return [i for i in range(frame_begin_idx, frame_end_idx, self.frame_step)]
+        return [i for i in range(frame_begin_idx, frame_end_idx + 1, self.frame_step)]
 
     def set_frame_step(self, frame_step):
         self.frame_step = frame_step
@@ -202,6 +203,11 @@ class YoutubeVosDataset(object):
     def _get_transforms(self, cfg, subset):
         if subset == DatasetSubset.TRAIN:
             return utils.data_transforms.Compose([{
+                'callback': 'ReorganizeObjectID',
+                'parameters': {
+                    'ignore_idx': self.cfg.CONST.INGORE_IDX
+                }
+            }, {
                 'callback': 'Resize',
                 'parameters': {
                     'size': cfg.TRAIN.AUGMENTATION.RESIZE_SIZE,
@@ -230,6 +236,12 @@ class YoutubeVosDataset(object):
             }])
         else:
             return utils.data_transforms.Compose([
+                {
+                    'callback': 'ReorganizeObjectID',
+                    'parameters': {
+                        'ignore_idx': self.cfg.CONST.INGORE_IDX
+                    }
+                },
                 {
                     'callback': 'ToOneHot',
                     'parameters': {
