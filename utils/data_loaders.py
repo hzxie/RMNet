@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-14 14:57:10
+# @Last Modified time: 2020-04-16 20:27:20
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -49,15 +49,15 @@ class Dataset(torch.utils.data.dataset.Dataset):
             masks.append(np.array(mask).astype(np.uint8))
 
         # Number of objects in the masks
+        if 'n_objects' not in video:
+            mask_indexes = np.unique(masks[0])
+            video['n_objects'] = np.max(mask_indexes[mask_indexes != self.options['ignore_idx']])
+
         n_objects = min(video['n_objects'], self.options['n_max_objects'])
 
         # Data preprocessing and augmentation
         if self.transforms is not None:
             frames, masks = self.transforms(frames, masks, n_objects)
-
-        # Masks to One Hot: (H, W) -> (n_object, H, W)
-        masks = torch.stack(
-            [utils.helpers.to_onehot(m, self.options['n_max_objects'] + 1) for m in masks], dim=0)
 
         return video['name'], n_objects, frames, masks
 
@@ -65,11 +65,13 @@ class Dataset(torch.utils.data.dataset.Dataset):
         if n_frames <= n_max_frames or n_max_frames == 0:
             return range(n_frames)
 
-        frame_begin_idx = n_frames - n_max_frames * self.frame_step
+        frame_begin_idx = n_frames - (n_max_frames - 1) * self.frame_step
         frame_begin_idx = random.randint(0, frame_begin_idx) if frame_begin_idx > 0 else 0
-        frame_end_idx = frame_begin_idx + n_max_frames * self.frame_step
-        if frame_end_idx > n_frames:
-            frame_end_idx = n_frames
+        frame_end_idx = frame_begin_idx + (n_max_frames - 1) * self.frame_step
+
+        # The frame_step can not be satisfied because the number of frames is not enough
+        if frame_end_idx >= n_frames:
+            return sorted([random.sample([i for i in range(n_frames)], n_max_frames)])
 
         return [i for i in range(frame_begin_idx, frame_end_idx, self.frame_step)]
 
@@ -99,10 +101,21 @@ class DavisDataset(object):
     def _get_transforms(self, cfg, subset):
         if subset == DatasetSubset.TRAIN:
             return utils.data_transforms.Compose([{
+                'callback': 'Resize',
+                'parameters': {
+                    'size': cfg.TRAIN.AUGMENTATION.RESIZE_SIZE,
+                    'keep_ratio': cfg.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO
+                }
+            }, {
                 'callback': 'RandomCrop',
                 'parameters': {
-                    'height': cfg.CONST.FRAME_SIZE,
-                    'width': cfg.CONST.FRAME_SIZE
+                    'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
+                    'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE
+                }
+            }, {
+                'callback': 'ToOneHot',
+                'parameters': {
+                    'shuffle': True
                 }
             }, {
                 'callback': 'Normalize',
@@ -116,6 +129,12 @@ class DavisDataset(object):
             }])
         else:
             return utils.data_transforms.Compose([
+                {
+                    'callback': 'ToOneHot',
+                    'parameters': {
+                        'shuffle': False
+                    }
+                },
                 {
                     'callback': 'Normalize',
                     'parameters': {
@@ -157,6 +176,105 @@ class DavisDataset(object):
         return file_list
 
 
+class YoutubeVosDataset(object):
+    def __init__(self, cfg):
+        self.cfg = cfg
+        # Load the dataset indexing file
+        self.videos = []
+        with open(cfg.DATASETS.YOUTUBE_VOS.INDEXING_FILE_PATH) as f:
+            self.videos = json.loads(f.read())
+            if 'videos' in self.videos:
+                self.videos = self.videos['videos']
+
+    def get_dataset(self, subset):
+        file_list = self._get_file_list(self.cfg)
+        transforms = self._get_transforms(self.cfg, subset)
+
+        n_max_frames = self.cfg.TRAIN.N_MAX_FRAMES if subset == DatasetSubset.TRAIN else 0
+        n_max_objects = self.cfg.TRAIN.N_MAX_OBJECTS if subset == DatasetSubset.TRAIN else self.cfg.DATASETS.YOUTUBE_VOS.N_MAX_OBJECTS
+        return Dataset(
+            file_list, transforms, {
+                'ignore_idx': self.cfg.CONST.INGORE_IDX,
+                'n_max_frames': n_max_frames,
+                'n_max_objects': n_max_objects
+            })
+
+    def _get_transforms(self, cfg, subset):
+        if subset == DatasetSubset.TRAIN:
+            return utils.data_transforms.Compose([{
+                'callback': 'Resize',
+                'parameters': {
+                    'size': cfg.TRAIN.AUGMENTATION.RESIZE_SIZE,
+                    'keep_ratio': cfg.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO
+                }
+            }, {
+                'callback': 'RandomCrop',
+                'parameters': {
+                    'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
+                    'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE
+                }
+            }, {
+                'callback': 'ToOneHot',
+                'parameters': {
+                    'shuffle': True
+                }
+            }, {
+                'callback': 'Normalize',
+                'parameters': {
+                    'mean': cfg.CONST.DATASET_MEAN,
+                    'std': cfg.CONST.DATASET_STD
+                }
+            }, {
+                'callback': 'ToTensor',
+                'parameters': None
+            }])
+        else:
+            return utils.data_transforms.Compose([
+                {
+                    'callback': 'ToOneHot',
+                    'parameters': {
+                        'shuffle': False
+                    }
+                },
+                {
+                    'callback': 'Normalize',
+                    'parameters': {
+                        'mean': cfg.CONST.DATASET_MEAN,
+                        'std': cfg.CONST.DATASET_STD
+                    }
+                },
+                {
+                    'callback': 'ToTensor',
+                    'parameters': None
+                },
+            ])
+
+    def _get_file_list(self, cfg):
+        file_list = []
+        for v in self.videos:
+            video = self.videos[v]
+            frame_indexes = set({})
+            for o_idx, o_value in video['objects'].items():
+                frame_indexes.update(o_value['frames'])
+
+            frame_indexes = sorted(list(frame_indexes))
+            file_list.append({
+                'name': v,
+                'n_frames': len(frame_indexes),
+                'frames': [
+                    cfg.DATASETS.YOUTUBE_VOS.IMG_FILE_PATH % (v, i)
+                    for i in frame_indexes
+                ],
+                'masks': [
+                    cfg.DATASETS.YOUTUBE_VOS.ANNOTATION_FILE_PATH % (v, i)
+                    for i in frame_indexes
+                ]
+            })  # yapf: disable
+
+        return file_list
+
+
 DATASET_LOADER_MAPPING = {
     'DAVIS': DavisDataset,
+    'YOUTUBE_VOS': YoutubeVosDataset
 }  # yapf: disable

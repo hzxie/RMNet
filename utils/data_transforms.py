@@ -2,13 +2,16 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-14 14:55:37
+# @Last Modified time: 2020-04-16 16:32:16
 # @Email:  cshzxie@gmail.com
 
+import cv2
 import numpy as np
 import torch
 import random
 import sys
+
+import utils.helpers
 
 
 class Compose(object):
@@ -40,6 +43,20 @@ class ToTensor(object):
         return frames, masks
 
 
+class ToOneHot(object):
+    def __init__(self, parameters):
+        self.shuffle = parameters['shuffle']
+
+    def __call__(self, frames, masks, n_objects):
+        random_permutation = np.random.permutation(n_objects) + 1
+        random_permutation = np.insert(random_permutation, 0, 0)    # Make background ID = 0
+        masks = [utils.helpers.to_onehot(m, n_objects + 1) for m in masks]
+        if self.shuffle:
+            masks = [m[random_permutation, ...] for m in masks]
+
+        return frames, masks
+
+
 class Normalize(object):
     def __init__(self, parameters):
         self.mean = parameters['mean']
@@ -52,6 +69,30 @@ class Normalize(object):
             f /= self.std
             frames[idx] = f
 
+        return frames, masks
+
+
+class Resize(object):
+    def __init__(self, parameters):
+        self.size = parameters['size']
+        self.keep_ratio = parameters['keep_ratio']
+
+    def __call__(self, frames, masks, n_objects):
+        n_frames = len(frames)
+        img_h, img_w = mask[0].shape
+
+        height = img_h
+        width = img_w
+        if self.keep_ratio:
+            scale = max(img_h / self.size, img_w / self.size)
+            height = int(img_h * scale)
+            width = int(img_w * scale)
+        else:
+            height = self.size
+            width = self.size
+
+        frames = [cv2.resize(f, (width, height), interpolation=cv2.INTER_LINEAR) for f in frames]
+        masks = [cv2.resize(m, (width, height), interpolation=cv2.INTER_NEAREST) for m in masks]
         return frames, masks
 
 

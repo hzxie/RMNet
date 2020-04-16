@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-14 16:53:27
+# @Last Modified time: 2020-04-16 20:23:50
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -21,6 +21,10 @@ __C.DATASETS.DAVIS.INDEXING_FILE_PATH            = './datasets/DAVIS.json'
 __C.DATASETS.DAVIS.IMG_FILE_PATH                 = '/home/SENSETIME/xiehaozhe/Datasets/DAVIS/JPEGImages/480p/%s/%05d.jpg'
 __C.DATASETS.DAVIS.ANNOTATION_FILE_PATH          = '/home/SENSETIME/xiehaozhe/Datasets/DAVIS/Annotations/480p/%s/%05d.png'
 __C.DATASETS.YOUTUBE_VOS                         = edict()
+__C.DATASETS.YOUTUBE_VOS.N_MAX_OBJECTS           = 11
+__C.DATASETS.YOUTUBE_VOS.INDEXING_FILE_PATH      = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/meta.json'
+__C.DATASETS.YOUTUBE_VOS.IMG_FILE_PATH           = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/JPEGImages/%s/%s.jpg'
+__C.DATASETS.YOUTUBE_VOS.ANNOTATION_FILE_PATH    = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/Annotations/%s/%s.png'
 __C.DATASETS.ECSSD                               = edict()
 __C.DATASETS.MSCOCO                              = edict()
 __C.DATASETS.VOC2012                             = edict()
@@ -31,7 +35,7 @@ __C.DATASETS.MSRA10K                             = edict()
 #
 __C.DATASET                                      = edict()
 # Dataset Options: DAVIS, YOUTUBE_VOS, ECSSD, MSCOCO, VOC2012, MSRA10K
-__C.DATASET.TRAIN_DATASET                        = 'DAVIS'
+__C.DATASET.TRAIN_DATASET                        = 'YOUTUBE_VOS'
 __C.DATASET.TEST_DATASET                         = 'DAVIS'
 
 #
@@ -40,7 +44,6 @@ __C.DATASET.TEST_DATASET                         = 'DAVIS'
 __C.CONST                                        = edict()
 __C.CONST.N_WORKERS                              = 2
 __C.CONST.INGORE_IDX                             = 255
-__C.CONST.FRAME_SIZE                             = 480
 __C.CONST.DATASET_MEAN                           = [0.485, 0.456, 0.406]
 __C.CONST.DATASET_STD                            = [0.229, 0.224, 0.225]
 __C.CONST.EXP_NAME                               = datetime.now().isoformat()
@@ -76,6 +79,10 @@ __C.TRAIN.BETAS                                  = (.9, .999)
 __C.TRAIN.WEIGHT_DECAY                           = 0
 __C.TRAIN.SAVE_FREQ                              = 20
 __C.TRAIN.MEMORIZE_EVERY                         = 1
+__C.TRAIN.AUGMENTATION                           = edict()
+__C.TRAIN.AUGMENTATION.RESIZE_SIZE               = 480
+__C.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO         = True
+__C.TRAIN.AUGMENTATION.CROP_SIZE                 = 480
 
 #
 # Test
