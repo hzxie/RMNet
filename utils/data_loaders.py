@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-17 15:04:32
+# @Last Modified time: 2020-04-17 15:06:19
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -140,6 +140,11 @@ class DavisDataset(object):
                     'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE
                 }
             }, {
+                'callback': 'ReorganizeObjectID',
+                'parameters': {
+                    'ignore_idx': self.cfg.CONST.INGORE_IDX
+                }
+            }, {
                 'callback': 'ToOneHot',
                 'parameters': {
                     'shuffle': True
@@ -155,7 +160,12 @@ class DavisDataset(object):
                 'parameters': None
             }])
         else:
-            return utils.data_transforms.Compose([
+            return utils.data_transforms.Compose([{
+                    'callback': 'ReorganizeObjectID',
+                    'parameters': {
+                        'ignore_idx': self.cfg.CONST.INGORE_IDX
+                    }
+                }, 
                 {
                     'callback': 'ToOneHot',
                     'parameters': {
@@ -229,11 +239,6 @@ class YoutubeVosDataset(object):
     def _get_transforms(self, cfg, subset):
         if subset == DatasetSubset.TRAIN:
             return utils.data_transforms.Compose([{
-                'callback': 'ReorganizeObjectID',
-                'parameters': {
-                    'ignore_idx': self.cfg.CONST.INGORE_IDX
-                }
-            }, {
                 'callback': 'Resize',
                 'parameters': {
                     'size': cfg.TRAIN.AUGMENTATION.RESIZE_SIZE,
@@ -244,6 +249,11 @@ class YoutubeVosDataset(object):
                 'parameters': {
                     'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
                     'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE
+                }
+            }, {
+                'callback': 'ReorganizeObjectID',
+                'parameters': {
+                    'ignore_idx': self.cfg.CONST.INGORE_IDX
                 }
             }, {
                 'callback': 'ToOneHot',
