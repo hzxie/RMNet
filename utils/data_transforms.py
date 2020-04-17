@@ -2,16 +2,21 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-17 15:03:15
+# @Last Modified time: 2020-04-17 20:07:27
 # @Email:  cshzxie@gmail.com
 
-import cv2
+import math
+import numbers
 import numpy as np
 import torch
 import random
 import sys
 
+import torchvision.transforms
+
 import utils.helpers
+
+from PIL import Image
 
 
 class Compose(object):
@@ -81,11 +86,10 @@ class Normalize(object):
         self.std = parameters['std']
 
     def __call__(self, frames, masks, n_objects):
-        for idx, f in enumerate(frames):
-            f /= 255.
-            f -= self.mean
-            f /= self.std
-            frames[idx] = f
+        for idx, (f, m) in enumerate(zip(frames, masks)):
+            f = f.astype(np.float32)
+            frames[idx] = (f / 255. - self.mean) / self.std
+            masks[idx] = m.astype(np.uint8)
 
         return frames, masks
 
@@ -108,8 +112,12 @@ class Resize(object):
             height = self.size
             width = self.size
 
-        frames = [cv2.resize(f, (width, height), interpolation=cv2.INTER_LINEAR) for f in frames]
-        masks = [cv2.resize(m, (width, height), interpolation=cv2.INTER_NEAREST) for m in masks]
+        frames = [
+            np.array(Image.fromarray(f).resize((width, height), Image.BILINEAR)) for f in frames
+        ]
+        masks = [
+            np.array(Image.fromarray(m).resize((width, height), Image.NEAREST)) for m in masks
+        ]
         return frames, masks
 
 
@@ -173,3 +181,100 @@ class RandomCrop(object):
         y_min, y_max = rows[[0, -1]]
 
         return x_min, x_max, y_min, y_max
+
+
+class RandomAffine(object):
+    def __init__(self, parameters):
+        self.degrees = parameters['degrees']
+        self.translate = parameters['translate']
+        self.scale = parameters['scale']
+        self.shears = parameters['shears']
+        self.frame_fill_color = parameters['frame_fill_color']
+        self.mask_fill_color = parameters['mask_fill_color']
+
+    def __call__(self, frames, masks, n_objects):
+        img_h, img_w = masks[0].shape
+
+        for idx, (f, m) in enumerate(zip(frames, masks)):
+            degrees, translate, scale, shears = torchvision.transforms.RandomAffine.get_params(
+                degrees=self.degrees,
+                translate=self.translate,
+                scale_ranges=self.scale,
+                shears=self.shears,
+                img_size=(img_h, img_w))
+
+            frames[idx] = np.array(
+                self._affine(Image.fromarray(f),
+                             degrees,
+                             translate,
+                             scale,
+                             shears,
+                             fillcolor=tuple(self.frame_fill_color)))
+            masks[idx] = np.array(
+                self._affine(Image.fromarray(m),
+                             degrees,
+                             translate,
+                             scale,
+                             shears,
+                             fillcolor=self.mask_fill_color))
+
+        return frames, masks
+
+    def _affine(self, img, degree, translate, scale, shear, resample=0, fillcolor=None):
+        center = (img.size[0] * 0.5 + 0.5, img.size[1] * 0.5 + 0.5)
+        matrix = self._get_inverse_affine_matrix(center, degree, translate, scale, shear)
+        kwargs = {"fillcolor": fillcolor}
+
+        return img.transform(img.size, Image.AFFINE, matrix, resample, **kwargs)
+
+    def _get_inverse_affine_matrix(self, center, angle, translate, scale, shear):
+        # Helper method to compute inverse matrix for affine transformation
+        # As it is explained in PIL.Image.rotate
+        # We need compute INVERSE of affine transformation matrix: M = T * C * RSS * C^-1
+        # where T is translation matrix: [1, 0, tx | 0, 1, ty | 0, 0, 1]
+        #       C is translation matrix to keep center: [1, 0, cx | 0, 1, cy | 0, 0, 1]
+        #       RSS is rotation with scale and shear matrix
+        #       RSS(a, s, (sx, sy)) =
+        #       = R(a) * S(s) * SHy(sy) * SHx(sx)
+        #       = [ s*cos(a - sy)/cos(sy), s*(-cos(a - sy)*tan(x)/cos(y) - sin(a)), 0 ]
+        #         [ s*sin(a + sy)/cos(sy), s*(-sin(a - sy)*tan(x)/cos(y) + cos(a)), 0 ]
+        #         [ 0                    , 0                                      , 1 ]
+        #
+        # where R is a rotation matrix, S is a scaling matrix, and SHx and SHy are the shears:
+        # SHx(s) = [1, -tan(s)] and SHy(s) = [1      , 0]
+        #          [0, 1      ]              [-tan(s), 1]
+        #
+        # Thus, the inverse is M^-1 = C * RSS^-1 * C^-1 * T^-1
+
+        if isinstance(shear, numbers.Number):
+            shear = [shear, 0]
+
+        if not isinstance(shear, (tuple, list)) and len(shear) == 2:
+            raise ValueError("Shear should be a single value or a tuple/list containing " +
+                             "two values. Got {}".format(shear))
+
+        rot = math.radians(angle)
+        sx, sy = [math.radians(s) for s in shear]
+
+        cx, cy = center
+        tx, ty = translate
+
+        # RSS without scaling
+        a = math.cos(rot - sy) / math.cos(sy)
+        b = -math.cos(rot - sy) * math.tan(sx) / math.cos(sy) - math.sin(rot)
+        c = math.sin(rot - sy) / math.cos(sy)
+        d = -math.sin(rot - sy) * math.tan(sx) / math.cos(sy) + math.cos(rot)
+
+        # Inverted rotation matrix with scale and shear
+        # det([[a, b], [c, d]]) == 1, since det(rotation) = 1 and det(shear) = 1
+        M = [d, -b, 0, -c, a, 0]
+        M = [x / scale for x in M]
+
+        # Apply inverse of translation and of center translation: RSS^-1 * C^-1 * T^-1
+        M[2] += M[0] * (-cx - tx) + M[1] * (-cy - ty)
+        M[5] += M[3] * (-cx - tx) + M[4] * (-cy - ty)
+
+        # Apply center translation: C * RSS^-1 * C^-1 * T^-1
+        M[2] += cx
+        M[5] += cy
+        return M

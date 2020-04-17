@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-17 15:06:19
+# @Last Modified time: 2020-04-17 17:01:08
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -43,10 +43,10 @@ class Dataset(torch.utils.data.dataset.Dataset):
         frame_indexes = self._get_frame_indexes(video['n_frames'], self.options['n_max_frames'])
         for fi in frame_indexes:
             frame = np.array(IO.get(video['frames'][fi]).convert('RGB'))
-            frames.append(np.array(frame).astype(np.float32))
+            frames.append(np.array(frame))
             mask = IO.get(video['masks'][fi])
             mask = mask.convert('P') if mask is not None else np.zeros(frame.shape[:-1])
-            masks.append(np.array(mask).astype(np.uint8))
+            masks.append(np.array(mask))
 
         # Number of objects in the masks
         if 'n_objects' not in video:
@@ -82,6 +82,7 @@ class Dataset(torch.utils.data.dataset.Dataset):
 
 class MultipleDatasets(torch.utils.data.dataset.Dataset):
     def __init__(self, datasets):
+        self.frame_step = 1
         self.datasets = datasets
         # The begin and end indexes of datasets
         self.indexes = [0]
@@ -102,6 +103,7 @@ class MultipleDatasets(torch.utils.data.dataset.Dataset):
         return self.datasets[dataset_idx][idx - self.indexes[dataset_idx]]
 
     def set_frame_step(self, frame_step):
+        self.frame_step = frame_step
         for d in self.datasets:
             d.set_frame_step(frame_step)
 
@@ -134,6 +136,16 @@ class DavisDataset(object):
                     'keep_ratio': cfg.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO
                 }
             }, {
+                'callback': 'RandomAffine',
+                'parameters': {
+                    'degrees': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_DEGREES,
+                    'translate': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_TRANSLATE,
+                    'scale': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_SCALE,
+                    'shears': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_SHEARS,
+                    'frame_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_FILL_COLOR,
+                    'mask_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_MASK_FILL_COLOR
+                }
+            }, {
                 'callback': 'RandomCrop',
                 'parameters': {
                     'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
@@ -142,7 +154,7 @@ class DavisDataset(object):
             }, {
                 'callback': 'ReorganizeObjectID',
                 'parameters': {
-                    'ignore_idx': self.cfg.CONST.INGORE_IDX
+                    'ignore_idx': cfg.CONST.INGORE_IDX
                 }
             }, {
                 'callback': 'ToOneHot',
@@ -160,12 +172,13 @@ class DavisDataset(object):
                 'parameters': None
             }])
         else:
-            return utils.data_transforms.Compose([{
+            return utils.data_transforms.Compose([
+                {
                     'callback': 'ReorganizeObjectID',
                     'parameters': {
-                        'ignore_idx': self.cfg.CONST.INGORE_IDX
+                        'ignore_idx': cfg.CONST.INGORE_IDX
                     }
-                }, 
+                },
                 {
                     'callback': 'ToOneHot',
                     'parameters': {
@@ -245,6 +258,16 @@ class YoutubeVosDataset(object):
                     'keep_ratio': cfg.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO
                 }
             }, {
+                'callback': 'RandomAffine',
+                'parameters': {
+                    'degrees': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_DEGREES,
+                    'translate': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_TRANSLATE,
+                    'scale': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_SCALE,
+                    'shears': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_SHEARS,
+                    'frame_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_FILL_COLOR,
+                    'mask_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_MASK_FILL_COLOR
+                }
+            }, {
                 'callback': 'RandomCrop',
                 'parameters': {
                     'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
@@ -253,7 +276,7 @@ class YoutubeVosDataset(object):
             }, {
                 'callback': 'ReorganizeObjectID',
                 'parameters': {
-                    'ignore_idx': self.cfg.CONST.INGORE_IDX
+                    'ignore_idx': cfg.CONST.INGORE_IDX
                 }
             }, {
                 'callback': 'ToOneHot',
@@ -275,7 +298,7 @@ class YoutubeVosDataset(object):
                 {
                     'callback': 'ReorganizeObjectID',
                     'parameters': {
-                        'ignore_idx': self.cfg.CONST.INGORE_IDX
+                        'ignore_idx': cfg.CONST.INGORE_IDX
                     }
                 },
                 {

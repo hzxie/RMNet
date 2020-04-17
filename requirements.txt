@@ -1,9 +1,10 @@
 argparse
 easydict
-opencv-python
+numpy
 pillow
 pprint
 scipy
 torch >= 1.0.0
+torchvision
 tensorboardX==1.2
 tqdm

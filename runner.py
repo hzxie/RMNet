@@ -3,19 +3,16 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:00:36
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-17 15:03:26
+# @Last Modified time: 2020-04-17 20:07:38
 # @Email:  cshzxie@gmail.com
 
 import argparse
-import cv2
 import logging
 import matplotlib
 import os
 import sys
 # Fix no $DISPLAY environment variable
 matplotlib.use('Agg')
-# Fix deadlock in DataLoader
-cv2.setNumThreads(0)
 
 from pprint import pprint
 
