@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-14 19:23:20
+# @Last Modified time: 2020-04-17 09:58:02
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -26,13 +26,13 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
     # Set up data loader
     if test_data_loader is None:
         # Set up data loader
-        dataset_loader = utils.data_loaders.DATASET_LOADER_MAPPING[cfg.DATASET.TEST_DATASET](cfg)
-        test_data_loader = torch.utils.data.DataLoader(dataset=dataset_loader.get_dataset(
-            utils.data_loaders.DatasetSubset.TEST),
-                                                       batch_size=1,
-                                                       num_workers=cfg.CONST.N_WORKERS,
-                                                       pin_memory=True,
-                                                       shuffle=False)
+        test_data_loader = torch.utils.data.DataLoader(
+            dataset=utils.data_loaders.DatasetCollector.get_dataset(
+                cfg, cfg.DATASET.TEST_DATASET, utils.data_loaders.DatasetSubset.TEST),
+            batch_size=1,
+            num_workers=cfg.CONST.N_WORKERS,
+            pin_memory=True,
+            shuffle=False)
 
     # Setup networks and initialize networks
     if stm is None:
