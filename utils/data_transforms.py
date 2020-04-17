@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-16 22:13:54
+# @Last Modified time: 2020-04-17 15:03:15
 # @Email:  cshzxie@gmail.com
 
 import cv2
@@ -101,7 +101,7 @@ class Resize(object):
         height = img_h
         width = img_w
         if self.keep_ratio:
-            scale = max(img_h / self.size, img_w / self.size)
+            scale = max(self.size / img_h, self.size / img_w)
             height = int(img_h * scale)
             width = int(img_w * scale)
         else:

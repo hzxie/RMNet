@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-17 10:19:35
+# @Last Modified time: 2020-04-17 15:04:32
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -83,6 +83,7 @@ class Dataset(torch.utils.data.dataset.Dataset):
 class MultipleDatasets(torch.utils.data.dataset.Dataset):
     def __init__(self, datasets):
         self.datasets = datasets
+        # The begin and end indexes of datasets
         self.indexes = [0]
         for d in datasets:
             self.indexes.append(self.indexes[-1] + len(d))
