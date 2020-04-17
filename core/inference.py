@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:26
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-14 15:39:50
+# @Last Modified time: 2020-04-17 09:58:09
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -23,13 +23,13 @@ def inference_net(cfg):
     torch.backends.cudnn.benchmark = True
 
     # Set up data loader
-    dataset_loader = utils.data_loaders.DATASET_LOADER_MAPPING[cfg.DATASET.TEST_DATASET](cfg)
-    test_data_loader = torch.utils.data.DataLoader(dataset=dataset_loader.get_dataset(
-        utils.data_loaders.DatasetSubset.TEST),
-                                                   batch_size=1,
-                                                   num_workers=cfg.CONST.N_WORKERS,
-                                                   pin_memory=True,
-                                                   shuffle=False)
+    test_data_loader = torch.utils.data.DataLoader(
+        dataset=utils.data_loaders.DatasetCollector.get_dataset(
+            cfg, cfg.DATASET.TEST_DATASET, utils.data_loaders.DatasetSubset.TEST),
+        batch_size=1,
+        num_workers=cfg.CONST.N_WORKERS,
+        pin_memory=True,
+        shuffle=False)
 
     # Setup networks and initialize networks
     stm = STM(cfg)

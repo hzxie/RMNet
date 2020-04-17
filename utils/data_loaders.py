@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-16 22:12:28
+# @Last Modified time: 2020-04-17 10:19:35
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -78,6 +78,31 @@ class Dataset(torch.utils.data.dataset.Dataset):
 
     def set_frame_step(self, frame_step):
         self.frame_step = frame_step
+
+
+class MultipleDatasets(torch.utils.data.dataset.Dataset):
+    def __init__(self, datasets):
+        self.datasets = datasets
+        self.indexes = [0]
+        for d in datasets:
+            self.indexes.append(self.indexes[-1] + len(d))
+
+    def __len__(self):
+        return self.indexes[-1]
+
+    def __getitem__(self, idx):
+        # Determine which dataset to use in self.datasets
+        dataset_idx = 0
+        for i, dataset_end_idx in enumerate(self.indexes):
+            if idx < dataset_end_idx:
+                dataset_idx = i - 1
+                break
+
+        return self.datasets[dataset_idx][idx - self.indexes[dataset_idx]]
+
+    def set_frame_step(self, frame_step):
+        for d in self.datasets:
+            d.set_frame_step(frame_step)
 
 
 class DavisDataset(object):
@@ -286,7 +311,26 @@ class YoutubeVosDataset(object):
         return file_list
 
 
-DATASET_LOADER_MAPPING = {
-    'DAVIS': DavisDataset,
-    'YOUTUBE_VOS': YoutubeVosDataset
-}  # yapf: disable
+class DatasetCollector(object):
+    DATASET_LOADER_MAPPING = {
+        'DAVIS': DavisDataset,
+        'YOUTUBE_VOS': YoutubeVosDataset
+    }  # yapf: disable
+
+    @classmethod
+    def get_dataset(cls, cfg, dataset, subset):
+        if type(dataset) == str:
+            return cls.DATASET_LOADER_MAPPING[dataset](cfg).get_dataset(subset)
+        elif type(dataset) == list:
+            datasets = []
+            for dn in dataset:
+                x_index = dn.rfind('x')
+                repeat_times = int(dn[x_index + 1:]) if x_index != -1 else 1
+                dn = dn[:x_index] if x_index != -1 else dn
+
+                for i in range(repeat_times):
+                    datasets.append(cls.DATASET_LOADER_MAPPING[dn](cfg).get_dataset(subset))
+
+            return MultipleDatasets(datasets)
+        else:
+            raise Exception('Unknown dataset format: %s' % dataset)

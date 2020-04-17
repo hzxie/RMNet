@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-16 22:14:07
+# @Last Modified time: 2020-04-17 10:02:45
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -26,22 +26,21 @@ def train_net(cfg):
     torch.backends.cudnn.benchmark = True
 
     # Set up data loader
-    train_dataset_loader = utils.data_loaders.DATASET_LOADER_MAPPING[cfg.DATASET.TRAIN_DATASET](
-        cfg)
-    test_dataset_loader = utils.data_loaders.DATASET_LOADER_MAPPING[cfg.DATASET.TEST_DATASET](cfg)
-    train_data_loader = torch.utils.data.DataLoader(dataset=train_dataset_loader.get_dataset(
-        utils.data_loaders.DatasetSubset.TRAIN),
-                                                    batch_size=cfg.TRAIN.BATCH_SIZE,
-                                                    num_workers=cfg.CONST.N_WORKERS,
-                                                    pin_memory=True,
-                                                    shuffle=True,
-                                                    drop_last=True)
-    val_data_loader = torch.utils.data.DataLoader(dataset=test_dataset_loader.get_dataset(
-        utils.data_loaders.DatasetSubset.VAL),
-                                                  batch_size=1,
-                                                  num_workers=cfg.CONST.N_WORKERS,
-                                                  pin_memory=True,
-                                                  shuffle=False)
+    train_data_loader = torch.utils.data.DataLoader(
+        dataset=utils.data_loaders.DatasetCollector.get_dataset(
+            cfg, cfg.DATASET.TRAIN_DATASET, utils.data_loaders.DatasetSubset.TRAIN),
+        batch_size=cfg.TRAIN.BATCH_SIZE,
+        num_workers=cfg.CONST.N_WORKERS,
+        pin_memory=True,
+        shuffle=True,
+        drop_last=True)
+    val_data_loader = torch.utils.data.DataLoader(
+        dataset=utils.data_loaders.DatasetCollector.get_dataset(
+            cfg, cfg.DATASET.TEST_DATASET, utils.data_loaders.DatasetSubset.VAL),
+        batch_size=1,
+        num_workers=cfg.CONST.N_WORKERS,
+        pin_memory=True,
+        shuffle=False)
 
     # Set up folders for logs and checkpoints
     output_dir = os.path.join(cfg.DIR.OUT_PATH, '%s', cfg.CONST.EXP_NAME)

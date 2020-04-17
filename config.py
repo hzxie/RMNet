@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-16 22:14:15
+# @Last Modified time: 2020-04-17 10:20:47
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -35,7 +35,7 @@ __C.DATASETS.MSRA10K                             = edict()
 #
 __C.DATASET                                      = edict()
 # Dataset Options: DAVIS, YOUTUBE_VOS, ECSSD, MSCOCO, VOC2012, MSRA10K
-__C.DATASET.TRAIN_DATASET                        = 'YOUTUBE_VOS'
+__C.DATASET.TRAIN_DATASET                        = ['YOUTUBE_VOS', 'DAVISx5']
 __C.DATASET.TEST_DATASET                         = 'DAVIS'
 
 #
