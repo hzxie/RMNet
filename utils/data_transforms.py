@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-17 20:07:27
+# @Last Modified time: 2020-04-17 21:23:51
 # @Email:  cshzxie@gmail.com
 
 import math
@@ -29,10 +29,10 @@ class Compose(object):
                 'callback': transformer(parameters),
             })  # yapf: disable
 
-    def __call__(self, frames, masks, n_objects):
+    def __call__(self, frames, masks):
         for tr in self.transformers:
             transform = tr['callback']
-            frames, masks = transform(frames, masks, n_objects)
+            frames, masks = transform(frames, masks)
 
         return frames, masks
 
@@ -41,7 +41,7 @@ class ToTensor(object):
     def __init__(self, parameters):
         pass
 
-    def __call__(self, frames, masks, n_objects):
+    def __call__(self, frames, masks):
         frames = torch.from_numpy(np.array(frames)).float().permute(0, 3, 1, 2)
         masks = torch.from_numpy(np.array(masks))
 
@@ -52,7 +52,7 @@ class ReorganizeObjectID(object):
     def __init__(self, parameters):
         self.ignore_idx = parameters['ignore_idx']
 
-    def __call__(self, frames, masks, n_objects):
+    def __call__(self, frames, masks):
         mask_indexes = np.unique(masks[0])
         mask_indexes = mask_indexes[mask_indexes != self.ignore_idx]
 
@@ -69,11 +69,12 @@ class ReorganizeObjectID(object):
 class ToOneHot(object):
     def __init__(self, parameters):
         self.shuffle = parameters['shuffle']
+        self.n_objects = parameters['n_objects']
 
-    def __call__(self, frames, masks, n_objects):
-        random_permutation = np.random.permutation(n_objects) + 1
+    def __call__(self, frames, masks):
+        random_permutation = np.random.permutation(self.n_objects) + 1
         random_permutation = np.insert(random_permutation, 0, 0)    # Make background ID = 0
-        masks = [utils.helpers.to_onehot(m, n_objects + 1) for m in masks]
+        masks = [utils.helpers.to_onehot(m, self.n_objects + 1) for m in masks]
         if self.shuffle:
             masks = [m[random_permutation, ...] for m in masks]
 
@@ -85,7 +86,7 @@ class Normalize(object):
         self.mean = parameters['mean']
         self.std = parameters['std']
 
-    def __call__(self, frames, masks, n_objects):
+    def __call__(self, frames, masks):
         for idx, (f, m) in enumerate(zip(frames, masks)):
             f = f.astype(np.float32)
             frames[idx] = (f / 255. - self.mean) / self.std
@@ -99,7 +100,7 @@ class Resize(object):
         self.size = parameters['size']
         self.keep_ratio = parameters['keep_ratio']
 
-    def __call__(self, frames, masks, n_objects):
+    def __call__(self, frames, masks):
         img_h, img_w = masks[0].shape
 
         height = img_h
@@ -126,7 +127,7 @@ class RandomCrop(object):
         self.height = parameters['height']
         self.width = parameters['width']
 
-    def __call__(self, frames, masks, n_objects):
+    def __call__(self, frames, masks):
         n_frames = len(frames)
         for i in range(n_frames):
             x_min = sys.maxsize
@@ -134,7 +135,7 @@ class RandomCrop(object):
             x_max = 0
             y_max = 0
             # Detect bounding boxes
-            for j in range(1, n_objects + 1):
+            for j in np.unique(masks[i]):
                 _x_min, _x_max, _y_min, _y_max = self._get_bounding_boxes(masks[i] == j)
                 # Bug Fix: the object is out of current frame
                 if _x_min is None or _x_max is None or _y_min is None or _y_max is None:
@@ -192,7 +193,7 @@ class RandomAffine(object):
         self.frame_fill_color = parameters['frame_fill_color']
         self.mask_fill_color = parameters['mask_fill_color']
 
-    def __call__(self, frames, masks, n_objects):
+    def __call__(self, frames, masks):
         img_h, img_w = masks[0].shape
 
         for idx, (f, m) in enumerate(zip(frames, masks)):

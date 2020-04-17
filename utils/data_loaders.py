@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-17 17:01:08
+# @Last Modified time: 2020-04-17 21:28:38
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -58,7 +58,7 @@ class Dataset(torch.utils.data.dataset.Dataset):
 
         # Data preprocessing and augmentation
         if self.transforms is not None:
-            frames, masks = self.transforms(frames, masks, n_objects)
+            frames, masks = self.transforms(frames, masks)
 
         return video['name'], n_objects, frames, masks
 
@@ -159,7 +159,8 @@ class DavisDataset(object):
             }, {
                 'callback': 'ToOneHot',
                 'parameters': {
-                    'shuffle': True
+                    'shuffle': True,
+                    'n_objects': cfg.TRAIN.N_MAX_OBJECTS
                 }
             }, {
                 'callback': 'Normalize',
@@ -182,7 +183,8 @@ class DavisDataset(object):
                 {
                     'callback': 'ToOneHot',
                     'parameters': {
-                        'shuffle': False
+                        'shuffle': False,
+                        'n_objects': cfg.DATASETS.DAVIS.N_MAX_OBJECTS
                     }
                 },
                 {
@@ -281,7 +283,8 @@ class YoutubeVosDataset(object):
             }, {
                 'callback': 'ToOneHot',
                 'parameters': {
-                    'shuffle': True
+                    'shuffle': True,
+                    'n_objects': cfg.TRAIN.N_MAX_OBJECTS
                 }
             }, {
                 'callback': 'Normalize',
@@ -304,7 +307,8 @@ class YoutubeVosDataset(object):
                 {
                     'callback': 'ToOneHot',
                     'parameters': {
-                        'shuffle': False
+                        'shuffle': False,
+                        'n_objects': cfg.DATASETS.YOUTUBE_VOS.N_MAX_OBJECTS
                     }
                 },
                 {
