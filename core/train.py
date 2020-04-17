@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-17 10:02:45
+# @Last Modified time: 2020-04-17 16:25:33
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -82,6 +82,7 @@ def train_net(cfg):
     if 'WEIGHTS' in cfg.CONST:
         logging.info('Recovering from %s ...' % (cfg.CONST.WEIGHTS))
         checkpoint = torch.load(cfg.CONST.WEIGHTS)
+        init_epoch = checkpoint['epoch_index']
         best_metrics = Metrics(cfg.TEST.MAIN_METRIC_NAME, checkpoint['best_metrics'])
         stm.load_state_dict(checkpoint['stm'])
         logging.info('Recover completed. Current epoch = #%d; best metrics = %s.' %
@@ -99,6 +100,12 @@ def train_net(cfg):
         stm.train()
         torch.autograd.set_detect_anomaly(True)
 
+        # Update frame step
+        if epoch_idx in cfg.TRAIN.FRAME_STEP_MILESTONES:
+            train_data_loader.dataset.set_frame_step(train_data_loader.dataset.frame_step + 1)
+            logging.info('[Epoch %d/%d] Set frame step to %d' %
+                         (epoch_idx, cfg.TRAIN.N_EPOCHS, train_data_loader.dataset.frame_step))
+
         batch_end_time = time()
         n_batches = len(train_data_loader)
         for batch_idx, (video_name, n_objects, frames, masks) in enumerate(train_data_loader):
@@ -106,7 +113,12 @@ def train_net(cfg):
 
             frames = utils.helpers.var_or_cuda(frames)
             masks = utils.helpers.var_or_cuda(masks)
-            est_probs = stm(frames, masks, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
+            try:
+                est_probs = stm(frames, masks, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
+            except Exception as ex:
+                logging.warn(ex)
+                continue
+
             loss = ce_loss(utils.helpers.var_or_cuda(est_probs), torch.argmax(masks, dim=1))
 
             losses.update(loss.item())
