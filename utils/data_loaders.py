@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-17 21:28:38
+# @Last Modified time: 2020-04-18 11:07:27
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -63,8 +63,12 @@ class Dataset(torch.utils.data.dataset.Dataset):
         return video['name'], n_objects, frames, masks
 
     def _get_frame_indexes(self, n_frames, n_max_frames):
-        if n_frames <= n_max_frames or n_max_frames == 0:
-            return range(n_frames)
+        if n_max_frames == 0:
+            # Select all frames for testing
+            return [i for i in range(n_frames)]
+        elif n_frames <= n_max_frames:
+            # Fix Bug: YouTube VOS [name=d177e9878a] only contains 2 frames
+            return random.choices([i for i in range(n_frames)], k=n_max_frames)
 
         frame_begin_idx = n_frames - (n_max_frames - 1) * self.frame_step - 1
         frame_begin_idx = random.randint(0, frame_begin_idx) if frame_begin_idx > 0 else 0
