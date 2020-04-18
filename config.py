@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-17 20:08:22
+# @Last Modified time: 2020-04-18 17:25:11
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -100,4 +100,5 @@ __C.TRAIN.AUGMENTATION.AFFINE_MASK_FILL_COLOR    = 255
 __C.TEST                                         = edict()
 __C.TEST.VISUALIZE_EVERY                         = 10
 __C.TEST.MEMORIZE_EVERY                          = 5
+__C.TEST.N_TESTING_VIDEOS                        = 10
 __C.TEST.MAIN_METRIC_NAME                        = 'JF-Mean'
