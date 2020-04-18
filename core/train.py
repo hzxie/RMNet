@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-17 16:25:33
+# @Last Modified time: 2020-04-18 11:38:08
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -74,7 +74,7 @@ def train_net(cfg):
                                                         gamma=cfg.TRAIN.GAMMA)
 
     # Set up loss functions
-    ce_loss = torch.nn.CrossEntropyLoss(ignore_index=cfg.CONST.INGORE_IDX)
+    nll_loss = torch.nn.NLLLoss(ignore_index=cfg.CONST.INGORE_IDX)
 
     # Load the pretrained model if exists
     init_epoch = 0
@@ -119,7 +119,8 @@ def train_net(cfg):
                 logging.warn(ex)
                 continue
 
-            loss = ce_loss(utils.helpers.var_or_cuda(est_probs), torch.argmax(masks, dim=1))
+            loss = nll_loss(utils.helpers.var_or_cuda(torch.log(est_probs[:, 1:])),
+                            torch.argmax(masks[:, 1:], dim=1))
 
             losses.update(loss.item())
             stm.zero_grad()

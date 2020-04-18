@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-17 09:58:02
+# @Last Modified time: 2020-04-18 11:38:53
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -49,7 +49,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
     stm.eval()
 
     # Set up loss functions
-    ce_loss = torch.nn.CrossEntropyLoss(ignore_index=cfg.CONST.INGORE_IDX)
+    nll_loss = torch.nn.NLLLoss(ignore_index=cfg.CONST.INGORE_IDX)
 
     # The testing loop
     n_videos = len(test_data_loader)
@@ -63,7 +63,12 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
                 frames = utils.helpers.var_or_cuda(frames)
                 masks = utils.helpers.var_or_cuda(masks)
 
-            est_probs = stm(frames, masks, n_objects, cfg.TEST.MEMORIZE_EVERY)
+            # Fix bugs: OOM error for large videos
+            try:
+                est_probs = stm(frames, masks, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
+            except Exception as ex:
+                logging.warn(ex)
+                continue
 
             video_name = video_name[0]
             frames = frames[0]
@@ -72,7 +77,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
             est_masks = torch.argmax(est_probs, dim=1)
             n_frames = est_masks.size(0)
 
-            _loss = ce_loss(est_probs, masks).item()
+            _loss = nll_loss(torch.log(est_probs[:, 1:]), masks[:, 1:]).item()
             test_losses.update(_loss)
             _metrics = Metrics.get(est_masks, masks)
             test_metrics.update(_metrics)
