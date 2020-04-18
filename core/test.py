@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-18 11:38:53
+# @Last Modified time: 2020-04-18 17:26:03
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -57,6 +57,10 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
     test_metrics = AverageMeter(Metrics.names())
 
     for idx, (video_name, n_objects, frames, masks) in enumerate(test_data_loader):
+        # Test only first 'N_TESTING_VIDEOS' videos to accelerate the testing process
+        if not epoch_idx == -1 and idx + 1 > cfg.TEST.N_TESTING_VIDEOS:
+            break
+
         with torch.no_grad():
             # Fix Assertion Error:  all(map(lambda i: i.is_cuda, inputs))
             if torch.cuda.device_count() > 1:
