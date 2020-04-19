@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-18 17:25:11
+# @Last Modified time: 2020-04-19 12:37:32
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -62,6 +62,15 @@ __C.MEMCACHED.ENABLED                            = False
 __C.MEMCACHED.LIBRARY_PATH                       = '/mnt/lustre/share/pymc/py3'
 __C.MEMCACHED.SERVER_CONFIG                      = '/mnt/lustre/share/memcached_client/server_list.conf'
 __C.MEMCACHED.CLIENT_CONFIG                      = '/mnt/lustre/share/memcached_client/client.conf'
+
+#
+# PAVI
+#
+__C.PAVI                                         = edict()
+__C.PAVI.ENABLED                                 = False
+__C.PAVI.PROJECT_NAME                            = 'Semi-Video-Segmentation'
+__C.PAVI.TAGS                                    = ['stm']
+
 
 #
 # Train

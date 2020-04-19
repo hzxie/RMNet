@@ -3,6 +3,7 @@ easydict
 numpy
 pillow
 pprint
+scikit-image
 scipy
 torch >= 1.0.0
 torchvision
