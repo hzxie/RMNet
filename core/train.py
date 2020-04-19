@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-18 11:38:08
+# @Last Modified time: 2020-04-19 11:12:00
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -119,8 +119,9 @@ def train_net(cfg):
                 logging.warn(ex)
                 continue
 
-            loss = nll_loss(utils.helpers.var_or_cuda(torch.log(est_probs[:, 1:])),
-                            torch.argmax(masks[:, 1:], dim=1))
+            est_probs = utils.helpers.var_or_cuda(torch.log(est_probs[:, 1:]))
+            masks = torch.argmax(masks[:, 1:], dim=2)
+            loss = nll_loss(est_probs.permute(0, 2, 1, 3, 4), masks)
 
             losses.update(loss.item())
             stm.zero_grad()
