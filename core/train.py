@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-19 11:12:00
+# @Last Modified time: 2020-04-19 14:23:39
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -13,12 +13,12 @@ import utils.data_loaders
 import utils.helpers
 
 from time import time
-from tensorboardX import SummaryWriter
 
 from core.test import test_net
 from models.stm import STM
 from utils.average_meter import AverageMeter
 from utils.metrics import Metrics
+from utils.summary_writer import SummaryWriter
 
 
 def train_net(cfg):
@@ -50,8 +50,8 @@ def train_net(cfg):
         os.makedirs(cfg.DIR.CHECKPOINTS)
 
     # Create tensorboard writers
-    train_writer = SummaryWriter(os.path.join(cfg.DIR.LOGS, 'train'))
-    val_writer = SummaryWriter(os.path.join(cfg.DIR.LOGS, 'test'))
+    train_writer = SummaryWriter(cfg, 'train')
+    val_writer = SummaryWriter(cfg, 'test')
 
     # Set up networks
     stm = STM(cfg)
