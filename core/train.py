@@ -2,11 +2,10 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-20 11:50:37
+# @Last Modified time: 2020-04-20 17:31:48
 # @Email:  cshzxie@gmail.com
 
 import logging
-import matplotlib.pyplot as plt
 import os
 import random
 import torch
@@ -129,15 +128,6 @@ def train_net(cfg):
             except Exception as ex:
                 logging.warn(ex)
                 continue
-
-            for i in range(3):
-                plt.imshow(
-                    utils.helpers.get_segmentation(frames[0, i], torch.argmax(masks[0, i], dim=0),
-                                                   {
-                                                       'mean': cfg.CONST.DATASET_MEAN,
-                                                       'std': cfg.CONST.DATASET_STD,
-                                                   }, cfg.CONST.INGORE_IDX))
-                plt.show()
 
             est_probs = utils.helpers.var_or_cuda(torch.log(est_probs[:, 1:]))
             masks = torch.argmax(masks[:, 1:], dim=2)
