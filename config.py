@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-20 14:14:14
+# @Last Modified time: 2020-04-20 14:36:51
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -20,24 +20,29 @@ __C.DATASETS.DAVIS.INDEXING_FILE_PATH            = './datasets/DAVIS.json'
 __C.DATASETS.DAVIS.IMG_FILE_PATH                 = '/home/SENSETIME/xiehaozhe/Datasets/DAVIS/JPEGImages/480p/%s/%05d.jpg'
 __C.DATASETS.DAVIS.ANNOTATION_FILE_PATH          = '/home/SENSETIME/xiehaozhe/Datasets/DAVIS/Annotations/480p/%s/%05d.png'
 __C.DATASETS.YOUTUBE_VOS                         = edict()
-__C.DATASETS.YOUTUBE_VOS.N_MAX_OBJECTS           = 10
 __C.DATASETS.YOUTUBE_VOS.INDEXING_FILE_PATH      = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/meta.json'
 __C.DATASETS.YOUTUBE_VOS.IMG_FILE_PATH           = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/JPEGImages/%s/%s.jpg'
 __C.DATASETS.YOUTUBE_VOS.ANNOTATION_FILE_PATH    = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/Annotations/%s/%s.png'
-__C.DATASETS.ECSSD                               = edict()
-__C.DATASETS.MSCOCO                              = edict()
 __C.DATASETS.PASCAL_VOC                          = edict()
 __C.DATASETS.PASCAL_VOC.INDEXING_FILE_PATH       = '/home/SENSETIME/xiehaozhe/Datasets/voc2012/trainval.txt'
 __C.DATASETS.PASCAL_VOC.IMG_FILE_PATH            = '/home/SENSETIME/xiehaozhe/Datasets/voc2012/images/%s.jpg'
 __C.DATASETS.PASCAL_VOC.ANNOTATION_FILE_PATH     = '/home/SENSETIME/xiehaozhe/Datasets/voc2012/masks/%s.png'
+__C.DATASETS.ECSSD                               = edict()
+__C.DATASETS.ECSSD.N_IMAGES                      = 1000
+__C.DATASETS.ECSSD.IMG_FILE_PATH                 = '/home/SENSETIME/xiehaozhe/Datasets/ecssd/images/%s.jpg'
+__C.DATASETS.ECSSD.ANNOTATION_FILE_PATH          = '/home/SENSETIME/xiehaozhe/Datasets/ecssd/masks/%s.png'
 __C.DATASETS.MSRA10K                             = edict()
+__C.DATASETS.MSRA10K.INDEXING_FILE_PATH          = './datasets/msra10k.txt'
+__C.DATASETS.MSRA10K.IMG_FILE_PATH               = '/home/SENSETIME/xiehaozhe/Datasets/msra10k/images/%s.jpg'
+__C.DATASETS.MSRA10K.ANNOTATION_FILE_PATH        = '/home/SENSETIME/xiehaozhe/Datasets/msra10k/masks/%s.png'
+__C.DATASETS.MSCOCO                              = edict()
 
 #
 # Dataset
 #
 __C.DATASET                                      = edict()
 # Dataset Options: DAVIS, YOUTUBE_VOS, ECSSD, MSCOCO, PASCAL_VOC, MSRA10K
-__C.DATASET.TRAIN_DATASET                        = ['PASCAL_VOC']
+__C.DATASET.TRAIN_DATASET                        = ['ECSSD']
 # __C.DATASET.TRAIN_DATASET                      = ['YOUTUBE_VOS', 'DAVISx5']
 __C.DATASET.TEST_DATASET                         = 'DAVIS'
 

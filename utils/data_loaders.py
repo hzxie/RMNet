@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-20 11:49:15
+# @Last Modified time: 2020-04-20 14:35:44
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -440,11 +440,36 @@ class PascalVocDataset(ImageDataset):
         return file_list
 
 
+class EcssdDataset(ImageDataset):
+    def __init__(self, cfg):
+        super(EcssdDataset, self).__init__()
+
+        self.cfg = cfg
+        # Load the dataset indexing file
+        self.images = ['%04d' % i for i in range(cfg.DATASETS.ECSSD.N_IMAGES)]
+
+    def _get_file_list(self, cfg):
+        file_list = []
+        for i in self.images:
+            file_list.append({
+                'name': i,
+                'n_frames': 1,
+                'frames': [
+                    cfg.DATASETS.ECSSD.IMG_FILE_PATH % i
+                ],
+                'masks': [
+                    cfg.DATASETS.ECSSD.ANNOTATION_FILE_PATH % i
+                ]
+            })  # yapf: disable
+
+        return file_list
+
 class DatasetCollector(object):
     DATASET_LOADER_MAPPING = {
         'DAVIS': DavisDataset,
         'YOUTUBE_VOS': YoutubeVosDataset,
         'PASCAL_VOC': PascalVocDataset,
+        'ECSSD': EcssdDataset,
     }  # yapf: disable
 
     @classmethod
