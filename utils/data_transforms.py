@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-17 21:23:51
+# @Last Modified time: 2020-04-20 16:36:06
 # @Email:  cshzxie@gmail.com
 
 import math
@@ -126,6 +126,7 @@ class RandomCrop(object):
     def __init__(self, parameters):
         self.height = parameters['height']
         self.width = parameters['width']
+        self.ignore_idx = parameters['ignore_idx']
 
     def __call__(self, frames, masks):
         n_frames = len(frames)
@@ -134,9 +135,16 @@ class RandomCrop(object):
             y_min = sys.maxsize
             x_max = 0
             y_max = 0
+            # Change ignore_idx to 0 for detecting bounding boxes
+            mask = masks[i].copy()
+            mask[mask == 255] = 0
             # Detect bounding boxes
-            for j in np.unique(masks[i]):
-                _x_min, _x_max, _y_min, _y_max = self._get_bounding_boxes(masks[i] == j)
+            for j in np.unique(mask):
+                # Ignore the background
+                if j == 0:
+                    continue
+
+                _x_min, _x_max, _y_min, _y_max = self._get_bounding_boxes(mask == j)
                 # Bug Fix: the object is out of current frame
                 if _x_min is None or _x_max is None or _y_min is None or _y_max is None:
                     continue
@@ -156,13 +164,16 @@ class RandomCrop(object):
             width_diff = abs(bbox_width - self.width)
 
             if bbox_height <= self.height:
-                y_min = random.randint(max(y_min - height_diff, 0),
-                                       min(img_h - self.height, y_min))
+                y_min_lb = max(y_min - height_diff, 0)
+                y_min_ub = min(img_h - self.height, y_min)
+                y_min = random.randint(y_min_lb, y_min_ub) if y_min_lb < y_min_ub else 0
             else:
                 y_min = random.randint(y_min, y_min + height_diff)
 
             if bbox_width <= self.width:
-                x_min = random.randint(max(x_min - width_diff, 0), min(img_w - self.height, x_min))
+                x_min_lb = max(x_min - width_diff, 0)
+                x_min_ub = min(img_w - self.width, x_min)
+                x_min = random.randint(x_min_lb, x_min_ub) if x_min_lb < x_min_ub else 0
             else:
                 x_min = random.randint(x_min, x_min + width_diff)
 

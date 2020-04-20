@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-20 14:39:07
+# @Last Modified time: 2020-04-20 16:35:44
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -153,7 +153,8 @@ class DavisDataset(object):
                 'callback': 'RandomCrop',
                 'parameters': {
                     'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
-                    'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE
+                    'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
+                    'ignore_idx': cfg.CONST.INGORE_IDX
                 }
             }, {
                 'callback': 'ReorganizeObjectID',
@@ -277,7 +278,8 @@ class YoutubeVosDataset(object):
                 'callback': 'RandomCrop',
                 'parameters': {
                     'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
-                    'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE
+                    'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
+                    'ignore_idx': cfg.CONST.INGORE_IDX
                 }
             }, {
                 'callback': 'ReorganizeObjectID',
@@ -388,7 +390,8 @@ class ImageDataset(object):
             'callback': 'RandomCrop',
             'parameters': {
                 'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
-                'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE
+                'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
+                'ignore_idx': cfg.CONST.INGORE_IDX
             }
         }, {
             'callback': 'ReorganizeObjectID',
@@ -492,6 +495,33 @@ class Msra10kDataset(ImageDataset):
         return file_list
 
 
+class MscocoDataset(ImageDataset):
+    def __init__(self, cfg):
+        super(MscocoDataset, self).__init__()
+
+        self.cfg = cfg
+        # Load the dataset indexing file
+        self.images = []
+        with open(cfg.DATASETS.MSCOCO.INDEXING_FILE_PATH) as f:
+            self.images = f.read().split('\n')
+
+    def _get_file_list(self, cfg):
+        file_list = []
+        for i in self.images:
+            file_list.append({
+                'name': i,
+                'n_frames': 1,
+                'frames': [
+                    cfg.DATASETS.MSCOCO.IMG_FILE_PATH % i
+                ],
+                'masks': [
+                    cfg.DATASETS.MSCOCO.ANNOTATION_FILE_PATH % i
+                ]
+            })  # yapf: disable
+
+        return file_list
+
+
 class DatasetCollector(object):
     DATASET_LOADER_MAPPING = {
         'DAVIS': DavisDataset,
@@ -499,6 +529,7 @@ class DatasetCollector(object):
         'PASCAL_VOC': PascalVocDataset,
         'ECSSD': EcssdDataset,
         'MSRA10K': Msra10kDataset,
+        'MSCOCO': MscocoDataset,
     }  # yapf: disable
 
     @classmethod
