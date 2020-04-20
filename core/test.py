@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-19 10:59:28
+# @Last Modified time: 2020-04-20 08:15:23
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -81,10 +81,10 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
             est_masks = torch.argmax(est_probs, dim=1)
             n_frames = est_masks.size(0)
 
-            _loss = nll_loss(torch.log(est_probs), masks).item()
-            test_losses.update(_loss)
-            _metrics = Metrics.get(est_masks, masks)
-            test_metrics.update(_metrics)
+            loss = nll_loss(torch.log(est_probs), masks).item()
+            test_losses.update(loss)
+            metrics = Metrics.get(est_masks, masks)
+            test_metrics.update(metrics)
 
             if test_writer is not None and idx < 3:
                 for i in tqdm(range(0, n_frames, cfg.TEST.VISUALIZE_EVERY),
@@ -104,7 +104,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
                         np.concatenate((est_segmentation, gt_segmentation), axis=0), epoch_idx)
 
             logging.info('Test[%d/%d] VideoName = %s Loss = %.4f Metrics = %s' %
-                         (idx + 1, n_videos, video_name, _loss, ['%.4f' % m for m in _metrics]))
+                         (idx + 1, n_videos, video_name, loss, ['%.4f' % m for m in metrics]))
 
     # Print testing results
     logging.info('[Test Summary] Loss = %.4f Metrics = %s' %

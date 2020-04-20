@@ -2,12 +2,14 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-19 14:23:39
+# @Last Modified time: 2020-04-20 08:39:18
 # @Email:  cshzxie@gmail.com
 
 import logging
 import os
+import random
 import torch
+import uuid
 
 import utils.data_loaders
 import utils.helpers
@@ -42,17 +44,6 @@ def train_net(cfg):
         pin_memory=True,
         shuffle=False)
 
-    # Set up folders for logs and checkpoints
-    output_dir = os.path.join(cfg.DIR.OUT_PATH, '%s', cfg.CONST.EXP_NAME)
-    cfg.DIR.CHECKPOINTS = output_dir % 'checkpoints'
-    cfg.DIR.LOGS = output_dir % 'logs'
-    if not os.path.exists(cfg.DIR.CHECKPOINTS):
-        os.makedirs(cfg.DIR.CHECKPOINTS)
-
-    # Create tensorboard writers
-    train_writer = SummaryWriter(cfg, 'train')
-    val_writer = SummaryWriter(cfg, 'test')
-
     # Set up networks
     stm = STM(cfg)
     stm.kv_memory.apply(utils.helpers.init_weights)
@@ -62,6 +53,14 @@ def train_net(cfg):
 
     # Move the network to GPU if possible
     if torch.cuda.is_available():
+        if torch.__version >= '1.2.0':
+            torch.distributed.init_process_group('nccl',
+                                                 init_method='file:///tmp/stm-%s' %
+                                                 uuid.uuid4().hex,
+                                                 world_size=1,
+                                                 rank=0)
+            stm = torch.nn.SyncBatchNorm.convert_sync_batchnorm(stm)
+
         stm = torch.nn.DataParallel(stm).cuda()
 
     # Create the optimizers
@@ -88,6 +87,17 @@ def train_net(cfg):
         logging.info('Recover completed. Current epoch = #%d; best metrics = %s.' %
                      (init_epoch, best_metrics))
 
+    # Set up folders for logs and checkpoints
+    output_dir = os.path.join(cfg.DIR.OUT_PATH, '%s', cfg.CONST.EXP_NAME)
+    cfg.DIR.CHECKPOINTS = output_dir % 'checkpoints'
+    cfg.DIR.LOGS = output_dir % 'logs'
+    if not os.path.exists(cfg.DIR.CHECKPOINTS):
+        os.makedirs(cfg.DIR.CHECKPOINTS)
+
+    # Create tensorboard writers
+    train_writer = SummaryWriter(cfg, 'train')
+    val_writer = SummaryWriter(cfg, 'test')
+
     # Training/Testing the network
     losses = AverageMeter()
     for epoch_idx in range(init_epoch + 1, cfg.TRAIN.N_EPOCHS + 1):
@@ -98,11 +108,11 @@ def train_net(cfg):
         losses = AverageMeter()
 
         stm.train()
-        torch.autograd.set_detect_anomaly(True)
 
         # Update frame step
-        if epoch_idx in cfg.TRAIN.FRAME_STEP_MILESTONES:
-            train_data_loader.dataset.set_frame_step(train_data_loader.dataset.frame_step + 1)
+        if epoch_idx in cfg.TRAIN.USE_RANDOM_FRAME_STEPS:
+            max_frame_steps = random.randint(1, min(cfg.TRAIN.MAX_FRAME_STEPS, epoch_idx // 5 + 2))
+            train_data_loader.dataset.set_frame_step(random(1, max_frame_steps))
             logging.info('[Epoch %d/%d] Set frame step to %d' %
                          (epoch_idx, cfg.TRAIN.N_EPOCHS, train_data_loader.dataset.frame_step))
 
