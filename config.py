@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-19 12:37:32
+# @Last Modified time: 2020-04-20 08:32:36
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -80,7 +80,8 @@ __C.TRAIN.BATCH_SIZE                             = 4
 __C.TRAIN.N_EPOCHS                               = 150
 __C.TRAIN.N_MAX_OBJECTS                          = 3
 __C.TRAIN.N_MAX_FRAMES                           = 3
-__C.TRAIN.FRAME_STEP_MILESTONES                  = []
+__C.TRAIN.USE_RANDOM_FRAME_STEPS                 = False
+__C.TRAIN.MAX_FRAME_STEPS                        = 20
 __C.TRAIN.LEARNING_RATE                          = 1e-5
 __C.TRAIN.LR_MILESTONES                          = [100]
 __C.TRAIN.GAMMA                                  = .5
