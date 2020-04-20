@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-18 11:07:27
+# @Last Modified time: 2020-04-20 11:49:15
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -125,7 +125,7 @@ class DavisDataset(object):
         transforms = self._get_transforms(self.cfg, subset)
 
         n_max_frames = self.cfg.TRAIN.N_MAX_FRAMES if subset == DatasetSubset.TRAIN else 0
-        n_max_objects = self.cfg.TRAIN.N_MAX_OBJECTS if subset == DatasetSubset.TRAIN else self.cfg.DATASETS.DAVIS.N_MAX_OBJECTS
+        n_max_objects = self.cfg.TRAIN.N_MAX_OBJECTS if subset == DatasetSubset.TRAIN else self.cfg.TEST.N_MAX_OBJECTS
         return Dataset(file_list, transforms, {
             'n_max_frames': n_max_frames,
             'n_max_objects': n_max_objects
@@ -188,7 +188,7 @@ class DavisDataset(object):
                     'callback': 'ToOneHot',
                     'parameters': {
                         'shuffle': False,
-                        'n_objects': cfg.DATASETS.DAVIS.N_MAX_OBJECTS
+                        'n_objects': cfg.TEST.N_MAX_OBJECTS
                     }
                 },
                 {
@@ -247,7 +247,7 @@ class YoutubeVosDataset(object):
         transforms = self._get_transforms(self.cfg, subset)
 
         n_max_frames = self.cfg.TRAIN.N_MAX_FRAMES if subset == DatasetSubset.TRAIN else 0
-        n_max_objects = self.cfg.TRAIN.N_MAX_OBJECTS if subset == DatasetSubset.TRAIN else self.cfg.DATASETS.YOUTUBE_VOS.N_MAX_OBJECTS
+        n_max_objects = self.cfg.TRAIN.N_MAX_OBJECTS if subset == DatasetSubset.TRAIN else self.cfg.TEST.N_MAX_OBJECTS
         return Dataset(
             file_list, transforms, {
                 'ignore_idx': self.cfg.CONST.INGORE_IDX,
@@ -312,7 +312,7 @@ class YoutubeVosDataset(object):
                     'callback': 'ToOneHot',
                     'parameters': {
                         'shuffle': False,
-                        'n_objects': cfg.DATASETS.YOUTUBE_VOS.N_MAX_OBJECTS
+                        'n_objects': cfg.TEST.N_MAX_OBJECTS
                     }
                 },
                 {
@@ -353,10 +353,98 @@ class YoutubeVosDataset(object):
         return file_list
 
 
+class ImageDataset(object):
+    def get_dataset(self, subset):
+        if not subset == DatasetSubset.TRAIN:
+            raise Exception('ONLY DatasetSubset.TRAIN is available for ImageDataset.')
+
+        file_list = self._get_file_list(self.cfg)
+        transforms = self._get_transforms(self.cfg)
+        return Dataset(
+            file_list, transforms, {
+                'ignore_idx': self.cfg.CONST.INGORE_IDX,
+                'n_max_frames': self.cfg.TRAIN.N_MAX_FRAMES,
+                'n_max_objects': self.cfg.TRAIN.N_MAX_OBJECTS
+            })
+
+    def _get_transforms(self, cfg):
+        return utils.data_transforms.Compose([{
+            'callback': 'Resize',
+            'parameters': {
+                'size': cfg.TRAIN.AUGMENTATION.RESIZE_SIZE,
+                'keep_ratio': cfg.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO
+            }
+        }, {
+            'callback': 'RandomAffine',
+            'parameters': {
+                'degrees': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_DEGREES,
+                'translate': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_TRANSLATE,
+                'scale': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_SCALE,
+                'shears': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_SHEARS,
+                'frame_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_FILL_COLOR,
+                'mask_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_MASK_FILL_COLOR
+            }
+        }, {
+            'callback': 'RandomCrop',
+            'parameters': {
+                'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
+                'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE
+            }
+        }, {
+            'callback': 'ReorganizeObjectID',
+            'parameters': {
+                'ignore_idx': cfg.CONST.INGORE_IDX
+            }
+        }, {
+            'callback': 'ToOneHot',
+            'parameters': {
+                'shuffle': True,
+                'n_objects': cfg.TRAIN.N_MAX_OBJECTS
+            }
+        }, {
+            'callback': 'Normalize',
+            'parameters': {
+                'mean': cfg.CONST.DATASET_MEAN,
+                'std': cfg.CONST.DATASET_STD
+            }
+        }, {
+            'callback': 'ToTensor',
+            'parameters': None
+        }])
+
+
+class PascalVocDataset(ImageDataset):
+    def __init__(self, cfg):
+        super(PascalVocDataset, self).__init__()
+
+        self.cfg = cfg
+        # Load the dataset indexing file
+        self.images = []
+        with open(cfg.DATASETS.PASCAL_VOC.INDEXING_FILE_PATH) as f:
+            self.images = f.read().split('\n')
+
+    def _get_file_list(self, cfg):
+        file_list = []
+        for i in self.images:
+            file_list.append({
+                'name': i,
+                'n_frames': 1,
+                'frames': [
+                    cfg.DATASETS.PASCAL_VOC.IMG_FILE_PATH % i
+                ],
+                'masks': [
+                    cfg.DATASETS.PASCAL_VOC.ANNOTATION_FILE_PATH % i
+                ]
+            })  # yapf: disable
+
+        return file_list
+
+
 class DatasetCollector(object):
     DATASET_LOADER_MAPPING = {
         'DAVIS': DavisDataset,
-        'YOUTUBE_VOS': YoutubeVosDataset
+        'YOUTUBE_VOS': YoutubeVosDataset,
+        'PASCAL_VOC': PascalVocDataset,
     }  # yapf: disable
 
     @classmethod

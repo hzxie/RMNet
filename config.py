@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-20 08:32:36
+# @Last Modified time: 2020-04-20 14:14:14
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -16,26 +16,29 @@ cfg                                              = __C
 #
 __C.DATASETS                                     = edict()
 __C.DATASETS.DAVIS                               = edict()
-__C.DATASETS.DAVIS.N_MAX_OBJECTS                 = 11
 __C.DATASETS.DAVIS.INDEXING_FILE_PATH            = './datasets/DAVIS.json'
 __C.DATASETS.DAVIS.IMG_FILE_PATH                 = '/home/SENSETIME/xiehaozhe/Datasets/DAVIS/JPEGImages/480p/%s/%05d.jpg'
 __C.DATASETS.DAVIS.ANNOTATION_FILE_PATH          = '/home/SENSETIME/xiehaozhe/Datasets/DAVIS/Annotations/480p/%s/%05d.png'
 __C.DATASETS.YOUTUBE_VOS                         = edict()
-__C.DATASETS.YOUTUBE_VOS.N_MAX_OBJECTS           = 11
+__C.DATASETS.YOUTUBE_VOS.N_MAX_OBJECTS           = 10
 __C.DATASETS.YOUTUBE_VOS.INDEXING_FILE_PATH      = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/meta.json'
 __C.DATASETS.YOUTUBE_VOS.IMG_FILE_PATH           = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/JPEGImages/%s/%s.jpg'
 __C.DATASETS.YOUTUBE_VOS.ANNOTATION_FILE_PATH    = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/Annotations/%s/%s.png'
 __C.DATASETS.ECSSD                               = edict()
 __C.DATASETS.MSCOCO                              = edict()
-__C.DATASETS.VOC2012                             = edict()
+__C.DATASETS.PASCAL_VOC                          = edict()
+__C.DATASETS.PASCAL_VOC.INDEXING_FILE_PATH       = '/home/SENSETIME/xiehaozhe/Datasets/voc2012/trainval.txt'
+__C.DATASETS.PASCAL_VOC.IMG_FILE_PATH            = '/home/SENSETIME/xiehaozhe/Datasets/voc2012/images/%s.jpg'
+__C.DATASETS.PASCAL_VOC.ANNOTATION_FILE_PATH     = '/home/SENSETIME/xiehaozhe/Datasets/voc2012/masks/%s.png'
 __C.DATASETS.MSRA10K                             = edict()
 
 #
 # Dataset
 #
 __C.DATASET                                      = edict()
-# Dataset Options: DAVIS, YOUTUBE_VOS, ECSSD, MSCOCO, VOC2012, MSRA10K
-__C.DATASET.TRAIN_DATASET                        = ['YOUTUBE_VOS', 'DAVISx5']
+# Dataset Options: DAVIS, YOUTUBE_VOS, ECSSD, MSCOCO, PASCAL_VOC, MSRA10K
+__C.DATASET.TRAIN_DATASET                        = ['PASCAL_VOC']
+# __C.DATASET.TRAIN_DATASET                      = ['YOUTUBE_VOS', 'DAVISx5']
 __C.DATASET.TEST_DATASET                         = 'DAVIS'
 
 #
@@ -108,6 +111,7 @@ __C.TRAIN.AUGMENTATION.AFFINE_MASK_FILL_COLOR    = 255
 # Test
 #
 __C.TEST                                         = edict()
+__C.TEST.N_MAX_OBJECTS                           = 10
 __C.TEST.VISUALIZE_EVERY                         = 10
 __C.TEST.MEMORIZE_EVERY                          = 5
 __C.TEST.N_TESTING_VIDEOS                        = 10
