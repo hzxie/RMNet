@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-20 14:35:44
+# @Last Modified time: 2020-04-20 14:39:07
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -464,12 +464,41 @@ class EcssdDataset(ImageDataset):
 
         return file_list
 
+
+class Msra10kDataset(ImageDataset):
+    def __init__(self, cfg):
+        super(Msra10kDataset, self).__init__()
+
+        self.cfg = cfg
+        # Load the dataset indexing file
+        self.images = []
+        with open(cfg.DATASETS.MSRA10K.INDEXING_FILE_PATH) as f:
+            self.images = f.read().split('\n')
+
+    def _get_file_list(self, cfg):
+        file_list = []
+        for i in self.images:
+            file_list.append({
+                'name': i,
+                'n_frames': 1,
+                'frames': [
+                    cfg.DATASETS.MSRA10K.IMG_FILE_PATH % i
+                ],
+                'masks': [
+                    cfg.DATASETS.MSRA10K.ANNOTATION_FILE_PATH % i
+                ]
+            })  # yapf: disable
+
+        return file_list
+
+
 class DatasetCollector(object):
     DATASET_LOADER_MAPPING = {
         'DAVIS': DavisDataset,
         'YOUTUBE_VOS': YoutubeVosDataset,
         'PASCAL_VOC': PascalVocDataset,
         'ECSSD': EcssdDataset,
+        'MSRA10K': Msra10kDataset,
     }  # yapf: disable
 
     @classmethod
