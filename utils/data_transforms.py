@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-20 16:36:06
+# @Last Modified time: 2020-04-20 17:31:47
 # @Email:  cshzxie@gmail.com
 
 import math
@@ -107,8 +107,8 @@ class Resize(object):
         width = img_w
         if self.keep_ratio:
             scale = max(self.size / img_h, self.size / img_w)
-            height = int(img_h * scale)
-            width = int(img_w * scale)
+            height = int(img_h * scale + 0.5)
+            width = int(img_w * scale + 0.5)
         else:
             height = self.size
             width = self.size
@@ -155,8 +155,8 @@ class RandomCrop(object):
                 y_max = max(y_max, _y_max)
 
             # Crop the frame and mask with the bounding box
-            bbox_height = y_max - y_min
-            bbox_width = x_max - x_min
+            bbox_height = y_max - y_min + 1
+            bbox_width = x_max - x_min + 1
 
             # Determine the top left coordinates of the crop box
             img_h, img_w = masks[i].shape
