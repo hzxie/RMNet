@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-20 16:35:44
+# @Last Modified time: 2020-04-21 09:54:10
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -424,7 +424,7 @@ class PascalVocDataset(ImageDataset):
         # Load the dataset indexing file
         self.images = []
         with open(cfg.DATASETS.PASCAL_VOC.INDEXING_FILE_PATH) as f:
-            self.images = f.read().split('\n')
+            self.images = f.read().split('\n')[:-1]
 
     def _get_file_list(self, cfg):
         file_list = []
@@ -449,7 +449,7 @@ class EcssdDataset(ImageDataset):
 
         self.cfg = cfg
         # Load the dataset indexing file
-        self.images = ['%04d' % i for i in range(cfg.DATASETS.ECSSD.N_IMAGES)]
+        self.images = ['%04d' % i for i in range(1, cfg.DATASETS.ECSSD.N_IMAGES + 1)]
 
     def _get_file_list(self, cfg):
         file_list = []
