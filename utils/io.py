@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2019-08-02 10:22:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-11 10:28:06
+# @Last Modified time: 2020-04-21 14:54:24
 # @Email:  cshzxie@gmail.com
 
 import io
@@ -13,7 +13,7 @@ import sys
 from PIL import Image
 
 # References: http://confluence.sensetime.com/pages/viewpage.action?pageId=44650315
-from config import cfg
+from config import __C as cfg
 sys.path.append(cfg.MEMCACHED.LIBRARY_PATH)
 
 mc_client = None

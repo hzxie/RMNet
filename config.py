@@ -2,15 +2,13 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-20 16:37:30
+# @Last Modified time: 2020-04-21 14:53:13
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
 from easydict import EasyDict as edict
 
 __C                                              = edict()
-cfg                                              = __C
-
 #
 # Dataset Config
 #
