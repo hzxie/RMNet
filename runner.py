@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:00:36
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-20 16:35:57
+# @Last Modified time: 2020-04-21 14:53:36
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -16,7 +16,6 @@ matplotlib.use('Agg')
 
 from pprint import pprint
 
-from config import cfg
 from core.train import train_net
 from core.test import test_net
 from core.inference import inference_net
@@ -25,6 +24,11 @@ from core.inference import inference_net
 def get_args_from_command_line():
     parser = argparse.ArgumentParser(description='The argument parser of R2Net runner')
     parser.add_argument('--exp', dest='exp_name', help='Experiment Name', default=None, type=str)
+    parser.add_argument('--cfg',
+                        dest='cfg_file',
+                        help='Path to the config.py file',
+                        default='config.py',
+                        type=str)
     parser.add_argument('--gpu', dest='gpu_id', help='GPU device to use', default=None, type=str)
     parser.add_argument('--test', dest='test', help='Test neural networks', action='store_true')
     parser.add_argument('--inference',
@@ -43,16 +47,18 @@ def main():
     # Get args from command line
     args = get_args_from_command_line()
 
+    # Read the experimental config
+    exec(compile(open(args.cfg_file, "rb").read(), args.cfg_file, 'exec'))
+    cfg = locals()['__C']
+    pprint(cfg)
+
+    # Parse runtime arguments
     if args.gpu_id is not None:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
     if args.exp_name is not None:
         cfg.CONST.EXP_NAME = args.exp_name
     if args.weights is not None:
         cfg.CONST.WEIGHTS = args.weights
-
-    # Print config
-    print('Use config:')
-    pprint(cfg)
 
     # Start train/test process
     if not args.test and not args.inference:
