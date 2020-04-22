@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-20 17:31:48
+# @Last Modified time: 2020-04-22 20:58:36
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -111,10 +111,10 @@ def train_net(cfg):
 
         # Update frame step
         if cfg.TRAIN.USE_RANDOM_FRAME_STEPS:
-            max_frame_steps = random.randint(1, min(cfg.TRAIN.MAX_FRAME_STEPS, epoch_idx // 5 + 2))
-            train_data_loader.dataset.set_frame_step(random.randint(1, max_frame_steps))
-            logging.info('[Epoch %d/%d] Set frame step to %d' %
-                         (epoch_idx, cfg.TRAIN.N_EPOCHS, train_data_loader.dataset.frame_step))
+            max_frame_step = min(cfg.TRAIN.MAX_FRAME_STEPS, epoch_idx // 5 + 2)
+            train_data_loader.dataset.set_max_frame_step(max_frame_step)
+            logging.info('[Epoch %d/%d] Set max frame step to %d' %
+                         (epoch_idx, cfg.TRAIN.N_EPOCHS, train_data_loader.dataset.max_frame_step))
 
         batch_end_time = time()
         n_batches = len(train_data_loader)
