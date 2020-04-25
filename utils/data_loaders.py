@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-23 09:07:57
+# @Last Modified time: 2020-04-25 12:09:25
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -30,7 +30,7 @@ class Dataset(torch.utils.data.dataset.Dataset):
         self.options = options
         self.file_list = file_list
         self.transforms = transforms
-        self.max_frame_step = 1
+        self.frame_step = 1
 
     def __len__(self):
         return len(self.file_list)
@@ -70,24 +70,23 @@ class Dataset(torch.utils.data.dataset.Dataset):
             # Fix Bug: YouTube VOS [name=d177e9878a] only contains 2 frames
             return random.choices([i for i in range(n_frames)], k=n_max_frames)
 
-        frame_step = random.randint(1, self.max_frame_step)
-        frame_begin_idx = n_frames - (n_max_frames - 1) * frame_step - 1
+        frame_begin_idx = n_frames - (n_max_frames - 1) * self.frame_step - 1
         frame_begin_idx = random.randint(0, frame_begin_idx) if frame_begin_idx > 0 else 0
-        frame_end_idx = frame_begin_idx + (n_max_frames - 1) * frame_step
+        frame_end_idx = frame_begin_idx + (n_max_frames - 1) * self.frame_step
 
         # The frame_step can not be satisfied because the number of frames is not enough
         if frame_end_idx >= n_frames:
             return sorted(random.sample([i for i in range(n_frames)], n_max_frames))
 
-        return [i for i in range(frame_begin_idx, frame_end_idx + 1, frame_step)]
+        return [i for i in range(frame_begin_idx, frame_end_idx + 1, self.frame_step)]
 
-    def set_max_frame_step(self, max_frame_step):
-        self.max_frame_step = max_frame_step
+    def set_frame_step(self, frame_step):
+        self.frame_step = frame_step
 
 
 class MultipleDatasets(torch.utils.data.dataset.Dataset):
     def __init__(self, datasets):
-        self.max_frame_step = 1
+        self.frame_step = 1
         self.datasets = datasets
         # The begin and end indexes of datasets
         self.indexes = [0]
@@ -107,10 +106,10 @@ class MultipleDatasets(torch.utils.data.dataset.Dataset):
 
         return self.datasets[dataset_idx][idx - self.indexes[dataset_idx]]
 
-    def set_max_frame_step(self, max_frame_step):
-        self.max_frame_step = max_frame_step
+    def set_frame_step(self, frame_step):
+        self.frame_step = frame_step
         for d in self.datasets:
-            d.set_max_frame_step(max_frame_step)
+            d.set_frame_step(frame_step)
 
 
 class DavisDataset(object):

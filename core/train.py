@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-22 20:58:36
+# @Last Modified time: 2020-04-25 17:37:53
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -53,14 +53,6 @@ def train_net(cfg):
 
     # Move the network to GPU if possible
     if torch.cuda.is_available():
-        if torch.__version__ >= '1.2.0':
-            torch.distributed.init_process_group('nccl',
-                                                 init_method='file:///tmp/stm-%s' %
-                                                 uuid.uuid4().hex,
-                                                 world_size=1,
-                                                 rank=0)
-            stm = torch.nn.SyncBatchNorm.convert_sync_batchnorm(stm)
-
         stm = torch.nn.DataParallel(stm).cuda()
 
     # Create the optimizers
@@ -107,14 +99,15 @@ def train_net(cfg):
         data_time = AverageMeter()
         losses = AverageMeter()
 
-        stm.train()
+        # Do not update BN layers
+        stm.eval()
 
         # Update frame step
         if cfg.TRAIN.USE_RANDOM_FRAME_STEPS:
-            max_frame_step = min(cfg.TRAIN.MAX_FRAME_STEPS, epoch_idx // 5 + 2)
-            train_data_loader.dataset.set_max_frame_step(max_frame_step)
-            logging.info('[Epoch %d/%d] Set max frame step to %d' %
-                         (epoch_idx, cfg.TRAIN.N_EPOCHS, train_data_loader.dataset.max_frame_step))
+            max_frame_steps = random.randint(1, min(cfg.TRAIN.MAX_FRAME_STEPS, epoch_idx // 5 + 2))
+            train_data_loader.dataset.set_frame_step(random.randint(1, max_frame_steps))
+            logging.info('[Epoch %d/%d] Set frame step to %d' %
+                         (epoch_idx, cfg.TRAIN.N_EPOCHS, train_data_loader.dataset.frame_step))
 
         batch_end_time = time()
         n_batches = len(train_data_loader)
