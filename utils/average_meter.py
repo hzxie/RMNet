@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2019-08-06 22:50:12
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-26 11:42:34
+# @Last Modified time: 2020-04-26 15:25:35
 # @Email:  cshzxie@gmail.com
 
 
@@ -23,7 +23,7 @@ class AverageMeter(object):
             for idx, v in enumerate(values):
                 self._val[idx] = v
                 self._sum[idx] += v * weight
-                self._count[idx] += 1 * weight
+                self._count[idx] += weight
         else:
             self._val[0] = values
             self._sum[0] += values * weight
