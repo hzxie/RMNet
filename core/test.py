@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-26 11:43:16
+# @Last Modified time: 2020-04-26 17:17:33
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -15,6 +15,7 @@ import utils.helpers
 from tqdm import tqdm
 
 from models.stm import STM
+from models.lovasz_loss import LovaszLoss
 from utils.average_meter import AverageMeter
 from utils.metrics import Metrics
 
@@ -50,6 +51,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
 
     # Set up loss functions
     nll_loss = torch.nn.NLLLoss(ignore_index=cfg.CONST.INGORE_IDX)
+    lovasz_loss = LovaszLoss(ignore_index=cfg.CONST.INGORE_IDX)
 
     # The testing loop
     n_videos = len(test_data_loader)
@@ -74,29 +76,29 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
                 logging.warn(ex)
                 continue
 
-            video_name = video_name[0]
-            n_objects = n_objects[0]
-            frames = frames[0]
-            masks = torch.argmax(masks[0], dim=1)
-            est_probs = est_probs[0]
+            est_probs = est_probs.permute(0, 2, 1, 3, 4)
+            masks = torch.argmax(masks, dim=2)
             est_masks = torch.argmax(est_probs, dim=1)
-            n_frames = est_masks.size(0)
 
-            loss = nll_loss(torch.log(est_probs), masks).item()
+            loss = nll_loss(torch.log(est_probs), masks).item() + lovasz_loss(est_probs, masks).item()
             test_losses.update(loss)
-            metrics = Metrics.get(est_masks, masks)
-            test_metrics.update(metrics, n_objects)
+            metrics = Metrics.get(est_masks[0], masks[0])
+            test_metrics.update(metrics, n_objects[0].item())
 
+            video_name = video_name[0]
             if test_writer is not None and idx < 3:
+                frames = frames[0]
+                n_frames = est_masks.size(1)
+
                 for i in tqdm(range(0, n_frames, cfg.TEST.VISUALIZE_EVERY),
                               leave=False,
                               desc=video_name):
                     est_segmentation = utils.helpers.get_segmentation(
-                        frames[i], est_masks[i], {
+                        frames[i], est_masks[0][i], {
                             'mean': cfg.CONST.DATASET_MEAN,
                             'std': cfg.CONST.DATASET_STD,
                         }, cfg.CONST.INGORE_IDX)
-                    gt_segmentation = utils.helpers.get_segmentation(frames[i], masks[i], {
+                    gt_segmentation = utils.helpers.get_segmentation(frames[i], masks[0][i], {
                         'mean': cfg.CONST.DATASET_MEAN,
                         'std': cfg.CONST.DATASET_STD,
                     }, cfg.CONST.INGORE_IDX)

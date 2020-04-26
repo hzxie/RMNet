@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-26 14:36:15
+# @Last Modified time: 2020-04-26 17:17:40
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -17,6 +17,7 @@ from time import time
 
 from core.test import test_net
 from models.stm import STM
+from models.lovasz_loss import LovaszLoss
 from utils.average_meter import AverageMeter
 from utils.metrics import Metrics
 from utils.summary_writer import SummaryWriter
@@ -65,6 +66,7 @@ def train_net(cfg):
 
     # Set up loss functions
     nll_loss = torch.nn.NLLLoss(ignore_index=cfg.CONST.INGORE_IDX)
+    lovasz_loss = LovaszLoss(ignore_index=cfg.CONST.INGORE_IDX)
 
     # Load the pretrained model if exists
     init_epoch = 0
@@ -72,7 +74,6 @@ def train_net(cfg):
     if 'WEIGHTS' in cfg.CONST:
         logging.info('Recovering from %s ...' % (cfg.CONST.WEIGHTS))
         checkpoint = torch.load(cfg.CONST.WEIGHTS)
-        init_epoch = checkpoint['epoch_index']
         best_metrics = Metrics(cfg.TEST.MAIN_METRIC_NAME, checkpoint['best_metrics'])
         stm.load_state_dict(checkpoint['stm'])
         logging.info('Recover completed. Current epoch = #%d; best metrics = %s.' %
@@ -121,9 +122,9 @@ def train_net(cfg):
                 logging.warn(ex)
                 continue
 
-            est_probs = utils.helpers.var_or_cuda(torch.log(est_probs[:, 1:]))
+            est_probs = utils.helpers.var_or_cuda(est_probs[:, 1:]).permute(0, 2, 1, 3, 4)
             masks = torch.argmax(masks[:, 1:], dim=2)
-            loss = nll_loss(est_probs.permute(0, 2, 1, 3, 4), masks)
+            loss = nll_loss(torch.log(est_probs), masks) + lovasz_loss(est_probs, masks)
 
             losses.update(loss.item())
             stm.zero_grad()
