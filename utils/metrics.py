@@ -2,13 +2,14 @@
 # @Author: Haozhe Xie
 # @Date:   2019-08-08 14:31:30
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-12 13:44:33
+# @Last Modified time: 2020-04-26 11:29:36
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers
 # - David Martin <dmartin@eecs.berkeley.edu>
 # - Yunfeng Zhang <zhangyunfeng@sensetime.com>
 # - Anni Xu <xuanni@sensetime.com>
+# - Yunmu Huang <huangyunmu@sensetime.com>
 # - Haozhe Xie <cshzxie@gmail.com>
 
 import logging
@@ -69,7 +70,7 @@ class Metrics(object):
     def _get_j_mean(cls, pred, gt):
         n_frames, _, _ = gt.shape
         jaccard = []
-        for i in range(n_frames):
+        for i in range(1, n_frames):
             n_objects = np.max(gt)
             _gt = utils.helpers.to_onehot(gt[i], n_objects + 1)
             _pred = utils.helpers.to_onehot(pred[i], n_objects + 1)
@@ -104,7 +105,7 @@ class Metrics(object):
     def _get_f_mean(cls, pred, gt):
         n_frames, _, _ = gt.shape
         f_score = []
-        for i in range(n_frames):
+        for i in range(1, n_frames):
             n_objects = np.max(gt)
             _gt = utils.helpers.to_onehot(gt[i], n_objects + 1)
             _pred = utils.helpers.to_onehot(pred[i], n_objects + 1)
