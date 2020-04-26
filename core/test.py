@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-20 08:15:23
+# @Last Modified time: 2020-04-26 11:43:16
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -75,6 +75,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
                 continue
 
             video_name = video_name[0]
+            n_objects = n_objects[0]
             frames = frames[0]
             masks = torch.argmax(masks[0], dim=1)
             est_probs = est_probs[0]
@@ -84,7 +85,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
             loss = nll_loss(torch.log(est_probs), masks).item()
             test_losses.update(loss)
             metrics = Metrics.get(est_masks, masks)
-            test_metrics.update(metrics)
+            test_metrics.update(metrics, n_objects)
 
             if test_writer is not None and idx < 3:
                 for i in tqdm(range(0, n_frames, cfg.TEST.VISUALIZE_EVERY),

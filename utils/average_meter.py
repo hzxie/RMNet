@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2019-08-06 22:50:12
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2019-12-03 21:50:38
+# @Last Modified time: 2020-04-26 11:42:34
 # @Email:  cshzxie@gmail.com
 
 
@@ -18,16 +18,16 @@ class AverageMeter(object):
         self._sum = [0] * self.n_items
         self._count = [0] * self.n_items
 
-    def update(self, values):
+    def update(self, values, weight=1):
         if type(values).__name__ == 'list':
             for idx, v in enumerate(values):
                 self._val[idx] = v
-                self._sum[idx] += v
-                self._count[idx] += 1
+                self._sum[idx] += v * weight
+                self._count[idx] += 1 * weight
         else:
             self._val[0] = values
-            self._sum[0] += values
-            self._count[0] += 1
+            self._sum[0] += values * weight
+            self._count[0] += weight
 
     def val(self, idx=None):
         if idx is None:

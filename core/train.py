@@ -2,14 +2,13 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-25 17:37:53
+# @Last Modified time: 2020-04-26 14:36:15
 # @Email:  cshzxie@gmail.com
 
 import logging
 import os
 import random
 import torch
-import uuid
 
 import utils.data_loaders
 import utils.helpers
