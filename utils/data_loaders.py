@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-25 12:09:25
+# @Last Modified time: 2020-04-27 10:52:48
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -522,9 +522,39 @@ class MscocoDataset(ImageDataset):
         return file_list
 
 
+class DavisFrameDataset(ImageDataset):
+    def __init__(self, cfg):
+        super(DavisFrameDataset, self).__init__()
+
+        self.cfg = cfg
+        # Load the dataset indexing file
+        self.videos = []
+        with open(cfg.DATASETS.DAVIS.INDEXING_FILE_PATH) as f:
+            self.videos = json.loads(f.read())
+            self.videos = self.videos['train']
+
+    def _get_file_list(self, cfg):
+        file_list = []
+        for v in self.videos:
+            for i in range(v['n_frames']):
+                file_list.append({
+                    'name': i,
+                    'n_frames': 1,
+                    'frames': [
+                        cfg.DATASETS.DAVIS.IMG_FILE_PATH % (v['name'], i)
+                    ],
+                    'masks': [
+                        cfg.DATASETS.DAVIS.ANNOTATION_FILE_PATH % (v['name'], i)
+                    ]
+                })  # yapf: disable
+
+        return file_list
+
+
 class DatasetCollector(object):
     DATASET_LOADER_MAPPING = {
         'DAVIS': DavisDataset,
+        'DAVIS_FRAMES': DavisFrameDataset,
         'YOUTUBE_VOS': YoutubeVosDataset,
         'PASCAL_VOC': PascalVocDataset,
         'ECSSD': EcssdDataset,

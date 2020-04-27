@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-26 17:17:56
+# @Last Modified time: 2020-04-27 10:54:33
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -42,8 +42,8 @@ __C.DATASETS.MSCOCO.ANNOTATION_FILE_PATH         = '/home/SENSETIME/xiehaozhe/Da
 # Dataset
 #
 __C.DATASET                                      = edict()
-# Dataset Options: DAVIS, YOUTUBE_VOS, ECSSD, MSCOCO, PASCAL_VOC, MSRA10K
-__C.DATASET.TRAIN_DATASET                        = ['ECSSD', 'MSCOCO', 'PASCAL_VOC', 'MSRA10K']
+# Dataset Options: DAVIS, DAVIS_FRAMES, YOUTUBE_VOS, ECSSD, MSCOCO, PASCAL_VOC, MSRA10K
+__C.DATASET.TRAIN_DATASET                        = ['ECSSD', 'MSCOCO', 'PASCAL_VOC', 'MSRA10K', 'DAVIS_FRAMES']
 # __C.DATASET.TRAIN_DATASET                      = ['YOUTUBE_VOS', 'DAVISx5']
 __C.DATASET.TEST_DATASET                         = 'DAVIS'
 
