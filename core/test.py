@@ -80,7 +80,8 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
             masks = torch.argmax(masks, dim=2)
             est_masks = torch.argmax(est_probs, dim=1)
 
-            loss = nll_loss(torch.log(est_probs), masks).item() + lovasz_loss(est_probs, masks).item()
+            loss = nll_loss(torch.log(est_probs), masks).item() + lovasz_loss(est_probs,
+                                                                              masks).item()
             test_losses.update(loss)
             metrics = Metrics.get(est_masks[0], masks[0])
             test_metrics.update(metrics, n_objects[0].item())

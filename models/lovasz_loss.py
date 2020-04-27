@@ -2,16 +2,17 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-26 15:03:35
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-26 16:47:32
+# @Last Modified time: 2020-04-27 10:56:28
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
 # - Maxim Berman <maxim.berman@kuleuven.be>
 # - Haozhe Xie <cshzxie@gmail.com>
 
+import math
 import torch
 
-from itertools import  filterfalse
+from itertools import filterfalse
 
 
 class LovaszLoss(torch.nn.Module):
@@ -35,7 +36,7 @@ class LovaszLoss(torch.nn.Module):
         losses = []
         class_to_sum = list(range(C))
         for c in class_to_sum:
-            fg = (target == c).float() # foreground for class c
+            fg = (target == c).float()    # foreground for class c
             if fg.sum() == 0:
                 continue
 
@@ -48,10 +49,9 @@ class LovaszLoss(torch.nn.Module):
 
         return self._mean(losses)
 
-
     def _flatten(self, input, target):
         B, C, F, H, W = input.size()
-        input = input.permute(0, 2, 3, 4, 1).contiguous().view(-1, C)  # B * F * H * W, C = P, C
+        input = input.permute(0, 2, 3, 4, 1).contiguous().view(-1, C)    # B * F * H * W, C = P, C
         target = target.view(-1)
 
         valid = (target != self.ignore_index)
@@ -60,24 +60,24 @@ class LovaszLoss(torch.nn.Module):
 
         return vinput, vtarget
 
-    def _mean(self, l, ignore_nan=False, empty=0):
+    def _mean(self, lst, ignore_nan=False, empty=0):
         """
         nanmean compatible with generators.
         """
-        l = iter(l)
+        lst = iter(lst)
         if ignore_nan:
-            l = filterfalse(isnan, l)
+            lst = filterfalse(math.isnan, lst)
 
         try:
             n = 1
-            acc = next(l)
+            acc = next(lst)
         except StopIteration:
             if empty == 'raise':
                 raise ValueError('Empty mean')
 
             return empty
 
-        for n, v in enumerate(l, 2):
+        for n, v in enumerate(lst, 2):
             acc += v
 
         if n == 1:
@@ -96,7 +96,7 @@ class LovaszLoss(torch.nn.Module):
         union = gts + (1 - gt_sorted).float().cumsum(0)
         jaccard = 1. - intersection / union
 
-        if p > 1: # cover 1-pixel case
+        if p > 1:    # cover 1-pixel case
             jaccard[1:p] = jaccard[1:p] - jaccard[0:-1]
 
         return jaccard
