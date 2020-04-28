@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-27 10:52:48
+# @Last Modified time: 2020-04-28 09:10:44
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -217,7 +217,7 @@ class DavisDataset(object):
         file_list = []
         for v in self.videos[subset]:
             file_list.append({
-                'name': v['name'],
+                'name': '%s/%s' % ('DAVIS', v['name']),
                 'n_objects': v['n_objects'],
                 'n_frames': v['n_frames'],
                 'frames': [
@@ -340,7 +340,7 @@ class YoutubeVosDataset(object):
 
             frame_indexes = sorted(list(frame_indexes))
             file_list.append({
-                'name': v,
+                'name': '%s/%s' % ('YouTubeVOS', v),
                 'n_frames': len(frame_indexes),
                 'frames': [
                     cfg.DATASETS.YOUTUBE_VOS.IMG_FILE_PATH % (v, i)
@@ -430,7 +430,7 @@ class PascalVocDataset(ImageDataset):
         file_list = []
         for i in self.images:
             file_list.append({
-                'name': i,
+                'name': '%s/%s' % ('VOC', i),
                 'n_frames': 1,
                 'frames': [
                     cfg.DATASETS.PASCAL_VOC.IMG_FILE_PATH % i
@@ -455,7 +455,7 @@ class EcssdDataset(ImageDataset):
         file_list = []
         for i in self.images:
             file_list.append({
-                'name': i,
+                'name': '%s/%s' % ('ECSSD', i),
                 'n_frames': 1,
                 'frames': [
                     cfg.DATASETS.ECSSD.IMG_FILE_PATH % i
@@ -482,7 +482,7 @@ class Msra10kDataset(ImageDataset):
         file_list = []
         for i in self.images:
             file_list.append({
-                'name': i,
+                'name': '%s/%s' % ('MSRA10K', i),
                 'n_frames': 1,
                 'frames': [
                     cfg.DATASETS.MSRA10K.IMG_FILE_PATH % i
@@ -509,7 +509,7 @@ class MscocoDataset(ImageDataset):
         file_list = []
         for i in self.images:
             file_list.append({
-                'name': i,
+                'name': '%s/%s' % ('MSCOCO', i),
                 'n_frames': 1,
                 'frames': [
                     cfg.DATASETS.MSCOCO.IMG_FILE_PATH % i
@@ -538,7 +538,7 @@ class DavisFrameDataset(ImageDataset):
         for v in self.videos:
             for i in range(v['n_frames']):
                 file_list.append({
-                    'name': i,
+                    'name': '%s/%s/%s' % ('DAVIS', v['name'], i),
                     'n_frames': 1,
                     'frames': [
                         cfg.DATASETS.DAVIS.IMG_FILE_PATH % (v['name'], i)
