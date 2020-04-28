@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-20 17:31:47
+# @Last Modified time: 2020-04-28 16:15:41
 # @Email:  cshzxie@gmail.com
 
 import math
@@ -91,6 +91,18 @@ class Normalize(object):
             f = f.astype(np.float32)
             frames[idx] = (f / 255. - self.mean) / self.std
             masks[idx] = m.astype(np.uint8)
+
+        return frames, masks
+
+
+class RandomPermuteRGB(object):
+    def __init__(self, parameters):
+        pass
+
+    def __call__(self, frames, masks):
+        random_permutation = np.random.permutation(3)
+        for idx, f in enumerate(frames):
+            frames[idx] = f[..., random_permutation]
 
         return frames, masks
 
