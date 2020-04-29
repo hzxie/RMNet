@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-28 09:10:44
+# @Last Modified time: 2020-04-29 14:48:52
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -14,6 +14,7 @@ import utils.data_transforms
 import utils.helpers
 
 from enum import Enum, unique
+from PIL import Image
 
 from utils.io import IO
 
@@ -31,6 +32,7 @@ class Dataset(torch.utils.data.dataset.Dataset):
         self.file_list = file_list
         self.transforms = transforms
         self.frame_step = 1
+        self.target_object_size = 112
 
     def __len__(self):
         return len(self.file_list)
@@ -55,12 +57,15 @@ class Dataset(torch.utils.data.dataset.Dataset):
             video['n_objects'] = len(mask_indexes) - 1
 
         n_objects = min(video['n_objects'], self.options['n_max_objects'])
+        target_objects = self._get_target_objects(frames[0], masks[0],
+                                                  mask_indexes[1:n_objects + 1]).transpose(
+                                                      (0, 3, 1, 2))
 
         # Data preprocessing and augmentation
         if self.transforms is not None:
             frames, masks = self.transforms(frames, masks)
 
-        return video['name'], n_objects, frames, masks
+        return video['name'], n_objects, frames, masks, target_objects
 
     def _get_frame_indexes(self, n_frames, n_max_frames):
         if n_max_frames == 0:
@@ -79,6 +84,23 @@ class Dataset(torch.utils.data.dataset.Dataset):
             return sorted(random.sample([i for i in range(n_frames)], n_max_frames))
 
         return [i for i in range(frame_begin_idx, frame_end_idx + 1, self.frame_step)]
+
+    def _get_target_objects(self, frame, mask, mask_indexes):
+        n_objects = len(mask_indexes)
+        target_objects = np.zeros(
+            (n_objects, self.target_object_size, self.target_object_size, 3)).astype(np.float32)
+
+        for i, mi in enumerate(mask_indexes):
+            x_min, x_max, y_min, y_max = utils.helpers.get_bounding_boxes(mask == mi)
+            if x_min is None or x_max is None or y_min is None or y_max is None:
+                continue
+
+            target_object = frame[y_min:y_max + 1, x_min:x_max + 1, :]
+            target_objects[i] = np.array(
+                Image.fromarray(target_object).resize(
+                    (self.target_object_size, self.target_object_size), Image.BILINEAR)) / 255.
+
+        return target_objects
 
     def set_frame_step(self, frame_step):
         self.frame_step = frame_step
@@ -126,10 +148,12 @@ class DavisDataset(object):
 
         n_max_frames = self.cfg.TRAIN.N_MAX_FRAMES if subset == DatasetSubset.TRAIN else 0
         n_max_objects = self.cfg.TRAIN.N_MAX_OBJECTS if subset == DatasetSubset.TRAIN else self.cfg.TEST.N_MAX_OBJECTS
-        return Dataset(file_list, transforms, {
-            'n_max_frames': n_max_frames,
-            'n_max_objects': n_max_objects
-        })
+        return Dataset(
+            file_list, transforms, {
+                'ignore_idx': self.cfg.CONST.INGORE_IDX,
+                'n_max_frames': n_max_frames,
+                'n_max_objects': n_max_objects,
+            })
 
     def _get_transforms(self, cfg, subset):
         if subset == DatasetSubset.TRAIN:
@@ -218,7 +242,6 @@ class DavisDataset(object):
         for v in self.videos[subset]:
             file_list.append({
                 'name': '%s/%s' % ('DAVIS', v['name']),
-                'n_objects': v['n_objects'],
                 'n_frames': v['n_frames'],
                 'frames': [
                     cfg.DATASETS.DAVIS.IMG_FILE_PATH % (v['name'], i)

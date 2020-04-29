@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-26 17:17:40
+# @Last Modified time: 2020-04-29 09:49:58
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -111,13 +111,15 @@ def train_net(cfg):
 
         batch_end_time = time()
         n_batches = len(train_data_loader)
-        for batch_idx, (video_name, n_objects, frames, masks) in enumerate(train_data_loader):
+        for batch_idx, (video_name, n_objects, frames, masks,
+                        target_objects) in enumerate(train_data_loader):
             data_time.update(time() - batch_end_time)
 
             frames = utils.helpers.var_or_cuda(frames)
             masks = utils.helpers.var_or_cuda(masks)
+            target_objects = utils.helpers.var_or_cuda(target_objects)
             try:
-                est_probs = stm(frames, masks, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
+                est_probs = stm(frames, masks, target_objects, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
             except Exception as ex:
                 logging.warn(ex)
                 continue
