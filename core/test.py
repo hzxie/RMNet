@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-26 17:17:33
+# @Last Modified time: 2020-04-29 11:37:30
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -58,7 +58,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
     test_losses = AverageMeter()
     test_metrics = AverageMeter(Metrics.names())
 
-    for idx, (video_name, n_objects, frames, masks) in enumerate(test_data_loader):
+    for idx, (video_name, n_objects, frames, masks, target_objects) in enumerate(test_data_loader):
         # Test only first 'N_TESTING_VIDEOS' videos to accelerate the testing process
         if not epoch_idx == -1 and idx + 1 > cfg.TEST.N_TESTING_VIDEOS:
             break
@@ -68,10 +68,11 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
             if torch.cuda.device_count() > 1:
                 frames = utils.helpers.var_or_cuda(frames)
                 masks = utils.helpers.var_or_cuda(masks)
+                target_objects = utils.helpers.var_or_cuda(target_objects)
 
             # Fix bugs: OOM error for large videos
             try:
-                est_probs = stm(frames, masks, n_objects, cfg.TEST.MEMORIZE_EVERY)
+                est_probs = stm(frames, masks, target_objects, n_objects, cfg.TEST.MEMORIZE_EVERY)
             except Exception as ex:
                 logging.warn(ex)
                 continue

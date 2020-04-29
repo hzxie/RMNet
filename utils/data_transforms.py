@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-28 16:15:41
+# @Last Modified time: 2020-04-29 12:38:49
 # @Email:  cshzxie@gmail.com
 
 import math
@@ -156,7 +156,7 @@ class RandomCrop(object):
                 if j == 0:
                     continue
 
-                _x_min, _x_max, _y_min, _y_max = self._get_bounding_boxes(mask == j)
+                _x_min, _x_max, _y_min, _y_max = utils.helpers.get_bounding_boxes(mask == j)
                 # Bug Fix: the object is out of current frame
                 if _x_min is None or _x_max is None or _y_min is None or _y_max is None:
                     continue
@@ -194,17 +194,6 @@ class RandomCrop(object):
             masks[i] = masks[i][y_min:y_min + self.height, x_min:x_min + self.width]
 
         return frames, masks
-
-    def _get_bounding_boxes(self, mask):
-        rows = np.where(np.any(mask, axis=1))[0]
-        cols = np.where(np.any(mask, axis=0))[0]
-        if len(cols) == 0 or len(rows) == 0:
-            return None, None, None, None
-
-        x_min, x_max = cols[[0, -1]]
-        y_min, y_max = rows[[0, -1]]
-
-        return x_min, x_max, y_min, y_max
 
 
 class RandomAffine(object):

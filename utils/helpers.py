@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-26 15:47:26
+# @Last Modified time: 2020-04-29 12:38:11
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -45,6 +45,18 @@ def to_onehot(mask, k):
         one_hot_masks = torch.from_numpy(one_hot_masks)
 
     return one_hot_masks
+
+
+def get_bounding_boxes(mask):
+    rows = np.where(np.any(mask, axis=1))[0]
+    cols = np.where(np.any(mask, axis=0))[0]
+    if len(cols) == 0 or len(rows) == 0:
+        return None, None, None, None
+
+    x_min, x_max = cols[[0, -1]]
+    y_min, y_max = rows[[0, -1]]
+
+    return x_min, x_max, y_min, y_max
 
 
 def get_segmentation(frame, mask, normalization_parameters, ignore_idx=255, alpha=0.4):
