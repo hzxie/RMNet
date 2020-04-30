@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-29 11:27:02
+# @Last Modified time: 2020-04-30 09:23:46
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -302,7 +302,7 @@ class STM(torch.nn.Module):
             # print(_r3e.shape) # torch.Size([n_objects, 512, 60, 114])
             # print(_r2e.shape) # torch.Size([n_objects, 256, 120, 228])
 
-            _r4t, _, _, _, _ = self.encoder_query(target_objects[i])
+            _r4t, _, _, _, _ = self.encoder_query(target_objects[i][:n_objects[i], ...])
             # print(_r4t.shape)    # torch.Size([n_objects, 1024, 7, 7])
             _correlation_r4 = F.conv2d(r4[i].unsqueeze(dim=0), _r4t, padding=3).permute(1, 0, 2, 3)
             # print(_correlation_r4.shape) # torch.Size([n_objects, 1, 30, 57])
@@ -324,21 +324,21 @@ class STM(torch.nn.Module):
             batch_list[k] = torch.cat(v, dim=0)
 
         # memory select kv:(1, K, C, T, H, W)
-        # print(keys.shape)     # torch.Size([bs, n_objects, 128, 1, 30, 57])
-        # print(values.shape)   # torch.Size([bs, n_objects, 512, 1, 30, 57])
+        # print(keys.shape)     # torch.Size([bs, n_objects + 1, 128, 1, 30, 57])
+        # print(values.shape)   # torch.Size([bs, n_objects + 1, 512, 1, 30, 57])
         m4, viz = self.memory(batch_list['key'], batch_list['value'], batch_list['k4'],
                               batch_list['v4'])
         # print(m4.shape)       # torch.Size([bs, 1024, 30, 57])
         # print(viz.shape)      # torch.Size([bs, 3240, 1710])
         logits = self.decoder(m4, batch_list['r3e'], batch_list['r2e'])
-        # print(logits.shape)   # torch.Size([bs, n_objects, 480, 912])
+        # print(logits.shape)   # torch.Size([bs, 2, 480, 912])
         ps = F.softmax(logits, dim=1)    # no, h, w
-        # print(ps.shape)       # torch.Size([bs, n_objects, 480, 912])
+        # print(ps.shape)       # torch.Size([bs, 2, 480, 912])
         ps = ps[:, 1]
-        # print(ps.shape)       # torch.Size([bs, n_objects, 480, 912])
+        # print(ps.shape)       # torch.Size([bs, 480, 912])
         # ps = indipendant possibility to belong to each object
-        logit = self.soft_aggregation(ps, K, n_objects)    # 1, K, H, W
-        # print(logit.shape)    # torch.Size([bs, n_objects, 480, 912])
+        logit = self.soft_aggregation(ps, K, n_objects)
+        # print(logit.shape)    # torch.Size([bs, n_objects + 1, 480, 912])
 
         if pad[2] + pad[3] > 0:
             logit = logit[:, :, pad[2]:-pad[3], :]
@@ -346,7 +346,7 @@ class STM(torch.nn.Module):
         if pad[0] + pad[1] > 0:
             logit = logit[:, :, :, pad[0]:-pad[1]]
 
-        # print(logit.shape)    # torch.Size([bs, n_objects, 480, 912])
+        # print(logit.shape)    # torch.Size([bs, n_objects, 480, 910])
         return logit
 
     def forward(self, frames, masks, target_objects, n_objects, memorize_every):

@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-29 12:38:11
+# @Last Modified time: 2020-04-29 16:52:09
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -59,17 +59,23 @@ def get_bounding_boxes(mask):
     return x_min, x_max, y_min, y_max
 
 
-def get_segmentation(frame, mask, normalization_parameters, ignore_idx=255, alpha=0.4):
+def img_denormalize(image, mean, std):
+    image = image.permute(1, 2, 0).cpu().numpy()
+    image = (image * std + mean) * 255
+    return image.astype(np.uint8)
+
+
+def img_normalize(image, mean, std, order='HWC'):
+    image = (image.astype(np.float32) / 255. - mean) / std
+    return image.transpose((2, 0, 1)) if order == 'CHW' else image
+
+
+def get_segmentation(frame, mask, normalization_params, ignore_idx=255, alpha=0.4):
     mask = mask.cpu().numpy()
     if frame is None:
         return mask
 
-    mean = normalization_parameters['mean']
-    std = normalization_parameters['std']
-    frame = frame.permute(1, 2, 0).cpu().numpy()
-    frame = (frame * std + mean) * 255
-    frame = frame.astype(np.uint8)
-
+    frame = img_denormalize(frame, normalization_params['mean'], normalization_params['std'])
     PALETTE = np.reshape([
         [0, 0, 0],
         [128, 0, 0],

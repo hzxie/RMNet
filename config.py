@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-27 10:54:33
+# @Last Modified time: 2020-04-30 09:27:20
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -44,7 +44,7 @@ __C.DATASETS.MSCOCO.ANNOTATION_FILE_PATH         = '/home/SENSETIME/xiehaozhe/Da
 __C.DATASET                                      = edict()
 # Dataset Options: DAVIS, DAVIS_FRAMES, YOUTUBE_VOS, ECSSD, MSCOCO, PASCAL_VOC, MSRA10K
 __C.DATASET.TRAIN_DATASET                        = ['ECSSD', 'MSCOCO', 'PASCAL_VOC', 'MSRA10K', 'DAVIS_FRAMES']
-# __C.DATASET.TRAIN_DATASET                      = ['YOUTUBE_VOS', 'DAVISx5']
+__C.DATASET.TRAIN_DATASET                        = ['YOUTUBE_VOS', 'DAVISx5']
 __C.DATASET.TEST_DATASET                         = 'DAVIS'
 
 #
@@ -52,7 +52,8 @@ __C.DATASET.TEST_DATASET                         = 'DAVIS'
 #
 __C.CONST                                        = edict()
 __C.CONST.N_WORKERS                              = 2
-__C.CONST.INGORE_IDX                             = 255
+__C.CONST.IGNORE_IDX                             = 255
+__C.CONST.TARGET_OBJECT_SIZE                     = 112
 __C.CONST.DATASET_MEAN                           = [0.485, 0.456, 0.406]
 __C.CONST.DATASET_STD                            = [0.229, 0.224, 0.225]
 __C.CONST.EXP_NAME                               = datetime.now().isoformat()
@@ -89,13 +90,13 @@ __C.TRAIN.BATCH_SIZE                             = 4
 __C.TRAIN.N_EPOCHS                               = 150
 __C.TRAIN.N_MAX_OBJECTS                          = 3
 __C.TRAIN.N_MAX_FRAMES                           = 3
-__C.TRAIN.USE_RANDOM_FRAME_STEPS                 = False
+__C.TRAIN.USE_RANDOM_FRAME_STEPS                 = True
 __C.TRAIN.MAX_FRAME_STEPS                        = 20
 __C.TRAIN.LEARNING_RATE                          = 1e-5
 __C.TRAIN.LR_MILESTONES                          = [100]
 __C.TRAIN.GAMMA                                  = .5
 __C.TRAIN.BETAS                                  = (.9, .999)
-__C.TRAIN.WEIGHT_DECAY                           = 0
+__C.TRAIN.WEIGHT_DECAY                           = 5e-6
 __C.TRAIN.SAVE_FREQ                              = 20
 __C.TRAIN.MEMORIZE_EVERY                         = 1
 __C.TRAIN.AUGMENTATION                           = edict()
@@ -120,5 +121,5 @@ __C.TEST                                         = edict()
 __C.TEST.N_MAX_OBJECTS                           = 10
 __C.TEST.VISUALIZE_EVERY                         = 10
 __C.TEST.MEMORIZE_EVERY                          = 5
-__C.TEST.N_TESTING_VIDEOS                        = 10
+__C.TEST.TESTING_VIDEOS_INDEXES                  = [0, 2, 3, 8, 10, 18, 19, 24, 27, 29]
 __C.TEST.MAIN_METRIC_NAME                        = 'JF-Mean'
