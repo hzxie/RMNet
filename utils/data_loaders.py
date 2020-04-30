@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-30 09:34:30
+# @Last Modified time: 2020-04-30 11:52:18
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -67,7 +67,8 @@ class Dataset(torch.utils.data.dataset.Dataset):
                 'std': self.cfg.CONST.DATASET_STD
             })
 
-        return video['name'], n_objects, frames, masks, target_objects
+        # n_objects must above 0 to avoid cuDNN error: CUDNN_STATUS_BAD_PARAM
+        return video['name'], max(1, n_objects), frames, masks, target_objects
 
     def _get_frame_indexes(self, n_frames, n_max_frames):
         if n_max_frames == 0:
@@ -170,9 +171,6 @@ class DavisDataset(object):
                     'keep_ratio': cfg.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO
                 }
             }, {
-                'callback': 'RandomPermuteRGB',
-                'parameters': None
-            }, {
                 'callback': 'RandomAffine',
                 'parameters': {
                     'degrees': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_DEGREES,
@@ -206,6 +204,9 @@ class DavisDataset(object):
                     'mean': cfg.CONST.DATASET_MEAN,
                     'std': cfg.CONST.DATASET_STD
                 }
+            }, {
+                'callback': 'RandomPermuteRGB',
+                'parameters': None
             }, {
                 'callback': 'ToTensor',
                 'parameters': None
@@ -296,9 +297,6 @@ class YoutubeVosDataset(object):
                     'keep_ratio': cfg.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO
                 }
             }, {
-                'callback': 'RandomPermuteRGB',
-                'parameters': None
-            }, {
                 'callback': 'RandomAffine',
                 'parameters': {
                     'degrees': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_DEGREES,
@@ -332,6 +330,9 @@ class YoutubeVosDataset(object):
                     'mean': cfg.CONST.DATASET_MEAN,
                     'std': cfg.CONST.DATASET_STD
                 }
+            }, {
+                'callback': 'RandomPermuteRGB',
+                'parameters': None
             }, {
                 'callback': 'ToTensor',
                 'parameters': None
@@ -411,9 +412,6 @@ class ImageDataset(object):
                 'keep_ratio': cfg.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO
             }
         }, {
-            'callback': 'RandomPermuteRGB',
-            'parameters': None
-        }, {
             'callback': 'RandomAffine',
             'parameters': {
                 'degrees': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_DEGREES,
@@ -447,6 +445,9 @@ class ImageDataset(object):
                 'mean': cfg.CONST.DATASET_MEAN,
                 'std': cfg.CONST.DATASET_STD
             }
+        }, {
+            'callback': 'RandomPermuteRGB',
+            'parameters': None
         }, {
             'callback': 'ToTensor',
             'parameters': None

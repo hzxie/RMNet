@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-30 09:23:46
+# @Last Modified time: 2020-04-30 10:49:54
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -89,7 +89,7 @@ class EncoderQuery(torch.nn.Module):
 
         self.res2 = resnet.layer1    # 1/4, 256
         self.res3 = resnet.layer2    # 1/8, 512
-        self.res4 = resnet.layer3    # 1/8, 1024
+        self.res4 = resnet.layer3    # 1/16, 1024
 
     def forward(self, in_f):
         x = self.conv1(in_f)
@@ -98,7 +98,7 @@ class EncoderQuery(torch.nn.Module):
         x = self.maxpool(c1)    # 1/4, 64
         r2 = self.res2(x)    # 1/4, 256
         r3 = self.res3(r2)    # 1/8, 512
-        r4 = self.res4(r3)    # 1/8, 1024
+        r4 = self.res4(r3)    # 1/16, 1024
         return r4, r3, r2, c1, in_f
 
 
@@ -302,7 +302,7 @@ class STM(torch.nn.Module):
             # print(_r3e.shape) # torch.Size([n_objects, 512, 60, 114])
             # print(_r2e.shape) # torch.Size([n_objects, 256, 120, 228])
 
-            _r4t, _, _, _, _ = self.encoder_query(target_objects[i][:n_objects[i], ...])
+            _r4t, _, _, _, _ = self.encoder_query(target_objects[i][:n_objects[i]])
             # print(_r4t.shape)    # torch.Size([n_objects, 1024, 7, 7])
             _correlation_r4 = F.conv2d(r4[i].unsqueeze(dim=0), _r4t, padding=3).permute(1, 0, 2, 3)
             # print(_correlation_r4.shape) # torch.Size([n_objects, 1, 30, 57])
