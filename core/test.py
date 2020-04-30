@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-30 08:09:05
+# @Last Modified time: 2020-04-30 17:41:38
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -29,7 +29,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
         # Set up data loader
         test_data_loader = torch.utils.data.DataLoader(
             dataset=utils.data_loaders.DatasetCollector.get_dataset(
-                cfg, cfg.DATASET.TEST_DATASET, utils.data_loaders.DatasetSubset.TEST),
+                cfg, cfg.DATASET.TEST_DATASET, utils.data_loaders.DatasetSubset.VAL),
             batch_size=1,
             num_workers=cfg.CONST.N_WORKERS,
             pin_memory=True,
@@ -59,9 +59,9 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
     test_metrics = AverageMeter(Metrics.names())
 
     for idx, (video_name, n_objects, frames, masks, target_objects) in enumerate(test_data_loader):
-        # Test only first 'N_TESTING_VIDEOS' videos to accelerate the testing process
+        # Test only selected videos to accelerate the testing process
         if not epoch_idx == -1 and idx not in cfg.TEST.TESTING_VIDEOS_INDEXES:
-            break
+            continue
 
         with torch.no_grad():
             # Fix Assertion Error:  all(map(lambda i: i.is_cuda, inputs))
