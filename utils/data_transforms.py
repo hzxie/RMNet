@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-29 16:38:19
+# @Last Modified time: 2020-04-30 18:38:52
 # @Email:  cshzxie@gmail.com
 
 import math
@@ -191,6 +191,24 @@ class RandomCrop(object):
             # Crop the frame and mask
             frames[i] = frames[i][y_min:y_min + self.height, x_min:x_min + self.width, :]
             masks[i] = masks[i][y_min:y_min + self.height, x_min:x_min + self.width]
+
+        return frames, masks
+
+
+class ColorJitter(object):
+    def __init__(self, parameters):
+        self.brightness = parameters['brightness']
+        self.contrast = parameters['contrast']
+        self.saturation = parameters['saturation']
+        self.hue = parameters['hue']
+
+    def __call__(self, frames, masks):
+        jitter = torchvision.transforms.ColorJitter.get_params(brightness=self.brightness,
+                                                               contrast=self.contrast,
+                                                               saturation=self.saturation,
+                                                               hue=self.hue)
+        for idx, f in enumerate(frames):
+            frames[idx] = np.array(jitter(Image.fromarray(f)))
 
         return frames, masks
 

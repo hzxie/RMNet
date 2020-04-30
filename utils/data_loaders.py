@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-30 11:52:18
+# @Last Modified time: 2020-04-30 21:11:14
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -199,6 +199,14 @@ class DavisDataset(object):
                     'n_objects': cfg.TRAIN.N_MAX_OBJECTS
                 }
             }, {
+                'callback': 'ColorJitter',
+                'parameters': {
+                    'brightness': cfg.TRAIN.AUGMENTATION.COLOR_BRIGHTNESS,
+                    'contrast': cfg.TRAIN.AUGMENTATION.COLOR_CONTRAST,
+                    'saturation': cfg.TRAIN.AUGMENTATION.COLOR_SATURATION,
+                    'hue': cfg.TRAIN.AUGMENTATION.COLOR_HUE
+                }
+            }, {
                 'callback': 'Normalize',
                 'parameters': {
                     'mean': cfg.CONST.DATASET_MEAN,
@@ -245,7 +253,7 @@ class DavisDataset(object):
         elif subset == DatasetSubset.VAL:
             return 'val'
         else:
-            return 'val'
+            return 'test'
 
     def _get_file_list(self, cfg, subset):
         file_list = []
@@ -323,6 +331,14 @@ class YoutubeVosDataset(object):
                 'parameters': {
                     'shuffle': True,
                     'n_objects': cfg.TRAIN.N_MAX_OBJECTS
+                }
+            }, {
+                'callback': 'ColorJitter',
+                'parameters': {
+                    'brightness': cfg.TRAIN.AUGMENTATION.COLOR_BRIGHTNESS,
+                    'contrast': cfg.TRAIN.AUGMENTATION.COLOR_CONTRAST,
+                    'saturation': cfg.TRAIN.AUGMENTATION.COLOR_SATURATION,
+                    'hue': cfg.TRAIN.AUGMENTATION.COLOR_HUE
                 }
             }, {
                 'callback': 'Normalize',
@@ -438,6 +454,14 @@ class ImageDataset(object):
             'parameters': {
                 'shuffle': True,
                 'n_objects': cfg.TRAIN.N_MAX_OBJECTS
+            }
+        }, {
+            'callback': 'ColorJitter',
+            'parameters': {
+                'brightness': cfg.TRAIN.AUGMENTATION.COLOR_BRIGHTNESS,
+                'contrast': cfg.TRAIN.AUGMENTATION.COLOR_CONTRAST,
+                'saturation': cfg.TRAIN.AUGMENTATION.COLOR_SATURATION,
+                'hue': cfg.TRAIN.AUGMENTATION.COLOR_HUE
             }
         }, {
             'callback': 'Normalize',
