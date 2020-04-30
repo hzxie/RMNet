@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-29 14:48:52
+# @Last Modified time: 2020-04-30 09:25:30
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -28,11 +28,12 @@ class DatasetSubset(Enum):
 
 class Dataset(torch.utils.data.dataset.Dataset):
     def __init__(self, file_list, transforms=None, options=None):
-        self.options = options
+        self.cfg = options['g_cfg']
+        self.n_max_frames = options['n_max_frames']
+        self.n_max_objects = options['n_max_objects']
         self.file_list = file_list
         self.transforms = transforms
         self.frame_step = 1
-        self.target_object_size = 112
 
     def __len__(self):
         return len(self.file_list)
@@ -42,7 +43,7 @@ class Dataset(torch.utils.data.dataset.Dataset):
         frames = []
         masks = []
 
-        frame_indexes = self._get_frame_indexes(video['n_frames'], self.options['n_max_frames'])
+        frame_indexes = self._get_frame_indexes(video['n_frames'], self.n_max_frames)
         for fi in frame_indexes:
             frame = np.array(IO.get(video['frames'][fi]).convert('RGB'))
             frames.append(np.array(frame))
@@ -50,20 +51,21 @@ class Dataset(torch.utils.data.dataset.Dataset):
             mask = mask.convert('P') if mask is not None else np.zeros(frame.shape[:-1])
             masks.append(np.array(mask))
 
-        # Number of objects in the masks
-        if 'n_objects' not in video:
-            mask_indexes = np.unique(masks[0])
-            mask_indexes = mask_indexes[mask_indexes != self.options['ignore_idx']]
-            video['n_objects'] = len(mask_indexes) - 1
-
-        n_objects = min(video['n_objects'], self.options['n_max_objects'])
-        target_objects = self._get_target_objects(frames[0], masks[0],
-                                                  mask_indexes[1:n_objects + 1]).transpose(
-                                                      (0, 3, 1, 2))
-
         # Data preprocessing and augmentation
         if self.transforms is not None:
             frames, masks = self.transforms(frames, masks)
+
+        # Get the target patches from the first frame
+        # Following Enhanced Memory Network for Video Segmentation (Zhou et al.)
+        first_frame = utils.helpers.img_denormalize(frames[0],
+                                                    mean=self.cfg.CONST.DATASET_MEAN,
+                                                    std=self.cfg.CONST.DATASET_STD)
+        first_mask = masks[0].numpy()
+        target_objects, n_objects = self._get_target_objects(
+            first_frame, first_mask, self.cfg.CONST.TARGET_OBJECT_SIZE, {
+                'mean': self.cfg.CONST.DATASET_MEAN,
+                'std': self.cfg.CONST.DATASET_STD
+            })
 
         return video['name'], n_objects, frames, masks, target_objects
 
@@ -85,22 +87,27 @@ class Dataset(torch.utils.data.dataset.Dataset):
 
         return [i for i in range(frame_begin_idx, frame_end_idx + 1, self.frame_step)]
 
-    def _get_target_objects(self, frame, mask, mask_indexes):
-        n_objects = len(mask_indexes)
-        target_objects = np.zeros(
-            (n_objects, self.target_object_size, self.target_object_size, 3)).astype(np.float32)
+    def _get_target_objects(self, frame, mask, object_size, normalization_params):
+        n_objects = mask.shape[0] - 1
+        target_objects = np.zeros((n_objects, 3, object_size, object_size)).astype(np.float32)
 
-        for i, mi in enumerate(mask_indexes):
-            x_min, x_max, y_min, y_max = utils.helpers.get_bounding_boxes(mask == mi)
+        non_empty_counter = 0
+        for i in range(n_objects):
+            x_min, x_max, y_min, y_max = utils.helpers.get_bounding_boxes(mask[i + 1])
             if x_min is None or x_max is None or y_min is None or y_max is None:
                 continue
 
-            target_object = frame[y_min:y_max + 1, x_min:x_max + 1, :]
-            target_objects[i] = np.array(
-                Image.fromarray(target_object).resize(
-                    (self.target_object_size, self.target_object_size), Image.BILINEAR)) / 255.
+            target_object = np.array(
+                Image.fromarray(frame[y_min:y_max + 1, x_min:x_max + 1, :]).resize(
+                    (object_size, object_size), Image.BILINEAR))
+            target_objects[non_empty_counter] = utils.helpers.img_normalize(
+                target_object,
+                normalization_params['mean'],
+                normalization_params['std'],
+                order='CHW')
+            non_empty_counter += 1
 
-        return target_objects
+        return target_objects, non_empty_counter
 
     def set_frame_step(self, frame_step):
         self.frame_step = frame_step
@@ -148,12 +155,11 @@ class DavisDataset(object):
 
         n_max_frames = self.cfg.TRAIN.N_MAX_FRAMES if subset == DatasetSubset.TRAIN else 0
         n_max_objects = self.cfg.TRAIN.N_MAX_OBJECTS if subset == DatasetSubset.TRAIN else self.cfg.TEST.N_MAX_OBJECTS
-        return Dataset(
-            file_list, transforms, {
-                'ignore_idx': self.cfg.CONST.INGORE_IDX,
-                'n_max_frames': n_max_frames,
-                'n_max_objects': n_max_objects,
-            })
+        return Dataset(file_list, transforms, {
+            'g_cfg': self.cfg,
+            'n_max_frames': n_max_frames,
+            'n_max_objects': n_max_objects,
+        })
 
     def _get_transforms(self, cfg, subset):
         if subset == DatasetSubset.TRAIN:
@@ -178,12 +184,12 @@ class DavisDataset(object):
                 'parameters': {
                     'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
                     'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
-                    'ignore_idx': cfg.CONST.INGORE_IDX
+                    'ignore_idx': cfg.CONST.IGNORE_IDX
                 }
             }, {
                 'callback': 'ReorganizeObjectID',
                 'parameters': {
-                    'ignore_idx': cfg.CONST.INGORE_IDX
+                    'ignore_idx': cfg.CONST.IGNORE_IDX
                 }
             }, {
                 'callback': 'ToOneHot',
@@ -206,7 +212,7 @@ class DavisDataset(object):
                 {
                     'callback': 'ReorganizeObjectID',
                     'parameters': {
-                        'ignore_idx': cfg.CONST.INGORE_IDX
+                        'ignore_idx': cfg.CONST.IGNORE_IDX
                     }
                 },
                 {
@@ -272,12 +278,11 @@ class YoutubeVosDataset(object):
 
         n_max_frames = self.cfg.TRAIN.N_MAX_FRAMES if subset == DatasetSubset.TRAIN else 0
         n_max_objects = self.cfg.TRAIN.N_MAX_OBJECTS if subset == DatasetSubset.TRAIN else self.cfg.TEST.N_MAX_OBJECTS
-        return Dataset(
-            file_list, transforms, {
-                'ignore_idx': self.cfg.CONST.INGORE_IDX,
-                'n_max_frames': n_max_frames,
-                'n_max_objects': n_max_objects
-            })
+        return Dataset(file_list, transforms, {
+            'g_cfg': self.cfg,
+            'n_max_frames': n_max_frames,
+            'n_max_objects': n_max_objects
+        })
 
     def _get_transforms(self, cfg, subset):
         if subset == DatasetSubset.TRAIN:
@@ -302,12 +307,12 @@ class YoutubeVosDataset(object):
                 'parameters': {
                     'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
                     'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
-                    'ignore_idx': cfg.CONST.INGORE_IDX
+                    'ignore_idx': cfg.CONST.IGNORE_IDX
                 }
             }, {
                 'callback': 'ReorganizeObjectID',
                 'parameters': {
-                    'ignore_idx': cfg.CONST.INGORE_IDX
+                    'ignore_idx': cfg.CONST.IGNORE_IDX
                 }
             }, {
                 'callback': 'ToOneHot',
@@ -330,7 +335,7 @@ class YoutubeVosDataset(object):
                 {
                     'callback': 'ReorganizeObjectID',
                     'parameters': {
-                        'ignore_idx': cfg.CONST.INGORE_IDX
+                        'ignore_idx': cfg.CONST.IGNORE_IDX
                     }
                 },
                 {
@@ -387,7 +392,7 @@ class ImageDataset(object):
         transforms = self._get_transforms(self.cfg)
         return Dataset(
             file_list, transforms, {
-                'ignore_idx': self.cfg.CONST.INGORE_IDX,
+                'g_cfg': self.cfg,
                 'n_max_frames': self.cfg.TRAIN.N_MAX_FRAMES,
                 'n_max_objects': self.cfg.TRAIN.N_MAX_OBJECTS
             })
@@ -414,12 +419,12 @@ class ImageDataset(object):
             'parameters': {
                 'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
                 'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
-                'ignore_idx': cfg.CONST.INGORE_IDX
+                'ignore_idx': cfg.CONST.IGNORE_IDX
             }
         }, {
             'callback': 'ReorganizeObjectID',
             'parameters': {
-                'ignore_idx': cfg.CONST.INGORE_IDX
+                'ignore_idx': cfg.CONST.IGNORE_IDX
             }
         }, {
             'callback': 'ToOneHot',

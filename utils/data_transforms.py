@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-29 12:38:49
+# @Last Modified time: 2020-04-29 16:38:19
 # @Email:  cshzxie@gmail.com
 
 import math
@@ -88,8 +88,7 @@ class Normalize(object):
 
     def __call__(self, frames, masks):
         for idx, (f, m) in enumerate(zip(frames, masks)):
-            f = f.astype(np.float32)
-            frames[idx] = (f / 255. - self.mean) / self.std
+            frames[idx] = utils.helpers.img_normalize(f, self.mean, self.std).astype(np.float32)
             masks[idx] = m.astype(np.uint8)
 
         return frames, masks

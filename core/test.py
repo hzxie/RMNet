@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-29 11:37:30
+# @Last Modified time: 2020-04-30 08:09:05
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -50,8 +50,8 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
     stm.eval()
 
     # Set up loss functions
-    nll_loss = torch.nn.NLLLoss(ignore_index=cfg.CONST.INGORE_IDX)
-    lovasz_loss = LovaszLoss(ignore_index=cfg.CONST.INGORE_IDX)
+    nll_loss = torch.nn.NLLLoss(ignore_index=cfg.CONST.IGNORE_IDX)
+    lovasz_loss = LovaszLoss(ignore_index=cfg.CONST.IGNORE_IDX)
 
     # The testing loop
     n_videos = len(test_data_loader)
@@ -60,7 +60,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
 
     for idx, (video_name, n_objects, frames, masks, target_objects) in enumerate(test_data_loader):
         # Test only first 'N_TESTING_VIDEOS' videos to accelerate the testing process
-        if not epoch_idx == -1 and idx + 1 > cfg.TEST.N_TESTING_VIDEOS:
+        if not epoch_idx == -1 and idx not in cfg.TEST.TESTING_VIDEOS_INDEXES:
             break
 
         with torch.no_grad():
@@ -88,7 +88,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
             test_metrics.update(metrics, n_objects[0].item())
 
             video_name = video_name[0]
-            if test_writer is not None and idx < 3:
+            if test_writer is not None and idx < 3 and cfg.TEST.VISUALIZE_EVERY > 0:
                 frames = frames[0]
                 n_frames = est_masks.size(1)
 
@@ -99,11 +99,11 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
                         frames[i], est_masks[0][i], {
                             'mean': cfg.CONST.DATASET_MEAN,
                             'std': cfg.CONST.DATASET_STD,
-                        }, cfg.CONST.INGORE_IDX)
+                        }, cfg.CONST.IGNORE_IDX)
                     gt_segmentation = utils.helpers.get_segmentation(frames[i], masks[0][i], {
                         'mean': cfg.CONST.DATASET_MEAN,
                         'std': cfg.CONST.DATASET_STD,
-                    }, cfg.CONST.INGORE_IDX)
+                    }, cfg.CONST.IGNORE_IDX)
                     test_writer.add_image(
                         '%s/Frame%03d' % (video_name, i),
                         np.concatenate((est_segmentation, gt_segmentation), axis=0), epoch_idx)

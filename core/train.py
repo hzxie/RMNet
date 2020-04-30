@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-29 09:49:58
+# @Last Modified time: 2020-04-30 09:26:37
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -65,8 +65,8 @@ def train_net(cfg):
                                                         gamma=cfg.TRAIN.GAMMA)
 
     # Set up loss functions
-    nll_loss = torch.nn.NLLLoss(ignore_index=cfg.CONST.INGORE_IDX)
-    lovasz_loss = LovaszLoss(ignore_index=cfg.CONST.INGORE_IDX)
+    nll_loss = torch.nn.NLLLoss(ignore_index=cfg.CONST.IGNORE_IDX)
+    lovasz_loss = LovaszLoss(ignore_index=cfg.CONST.IGNORE_IDX)
 
     # Load the pretrained model if exists
     init_epoch = 0
