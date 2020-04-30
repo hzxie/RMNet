@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-30 09:25:30
+# @Last Modified time: 2020-04-30 09:34:30
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -170,6 +170,9 @@ class DavisDataset(object):
                     'keep_ratio': cfg.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO
                 }
             }, {
+                'callback': 'RandomPermuteRGB',
+                'parameters': None
+            }, {
                 'callback': 'RandomAffine',
                 'parameters': {
                     'degrees': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_DEGREES,
@@ -293,6 +296,9 @@ class YoutubeVosDataset(object):
                     'keep_ratio': cfg.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO
                 }
             }, {
+                'callback': 'RandomPermuteRGB',
+                'parameters': None
+            }, {
                 'callback': 'RandomAffine',
                 'parameters': {
                     'degrees': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_DEGREES,
@@ -404,6 +410,9 @@ class ImageDataset(object):
                 'size': cfg.TRAIN.AUGMENTATION.RESIZE_SIZE,
                 'keep_ratio': cfg.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO
             }
+        }, {
+            'callback': 'RandomPermuteRGB',
+            'parameters': None
         }, {
             'callback': 'RandomAffine',
             'parameters': {
