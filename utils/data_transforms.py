@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-30 18:38:52
+# @Last Modified time: 2020-05-01 18:40:45
 # @Email:  cshzxie@gmail.com
 
 import math
@@ -102,6 +102,27 @@ class RandomPermuteRGB(object):
         random_permutation = np.random.permutation(3)
         for idx, f in enumerate(frames):
             frames[idx] = f[..., random_permutation]
+
+        return frames, masks
+
+
+class RandomFlip(object):
+    def __init__(self, parameters):
+        pass
+
+    def __call__(self, frames, masks):
+        rnd_value = random.random()
+
+        for idx, (f, m) in enumerate(zip(frames, masks)):
+            if rnd_value <= 0.25:
+                frames[idx] = np.flip(f, axis=0)
+                masks[idx] = np.flip(m, axis=0)
+            elif rnd_value <= 0.5:
+                frames[idx] = np.flip(f, axis=1)
+                masks[idx] = np.flip(m, axis=1)
+            elif rnd_value <= 0.75:
+                frames[idx] = np.flip(f, axis=(0, 1))
+                masks[idx] = np.flip(m, axis=(0, 1))
 
         return frames, masks
 

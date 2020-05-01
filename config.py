@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-01 10:46:04
+# @Last Modified time: 2020-05-01 18:19:46
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -86,7 +86,7 @@ __C.PAVI.TAGS                                    = ['stm']
 # Train
 #
 __C.TRAIN                                        = edict()
-__C.TRAIN.BATCH_SIZE                             = 1
+__C.TRAIN.BATCH_SIZE                             = 4
 __C.TRAIN.N_EPOCHS                               = 150
 __C.TRAIN.N_MAX_OBJECTS                          = 3
 __C.TRAIN.N_MAX_FRAMES                           = 3
@@ -110,7 +110,7 @@ __C.TRAIN.AUGMENTATION.COLOR_HUE                 = None
 __C.TRAIN.AUGMENTATION.AFFINE_IMAGE_DEGREES      = (-20, 20)
 __C.TRAIN.AUGMENTATION.AFFINE_IMAGE_TRANSLATE    = (0, 0)
 __C.TRAIN.AUGMENTATION.AFFINE_IMAGE_SCALE        = (0.9, 1.1)
-__C.TRAIN.AUGMENTATION.AFFINE_IMAGE_SHEARS       = (6, 9)
+__C.TRAIN.AUGMENTATION.AFFINE_IMAGE_SHEARS       = (-10, 10)
 __C.TRAIN.AUGMENTATION.AFFINE_VIDEO_DEGREES      = (-15, 15)
 __C.TRAIN.AUGMENTATION.AFFINE_VIDEO_TRANSLATE    = (0, 0)
 __C.TRAIN.AUGMENTATION.AFFINE_VIDEO_SCALE        = (0.95, 1.05)
