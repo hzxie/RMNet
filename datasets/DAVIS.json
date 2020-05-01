@@ -1,456 +1,487 @@
 {
-    "test": [],
+    "test": [
+        {
+            "n_frames": 71,
+            "name": "aerobatics"
+        },
+        {
+            "n_frames": 31,
+            "name": "car-race"
+        },
+        {
+            "n_frames": 69,
+            "name": "carousel"
+        },
+        {
+            "n_frames": 67,
+            "name": "cats-car"
+        },
+        {
+            "n_frames": 85,
+            "name": "chamaleon"
+        },
+        {
+            "n_frames": 79,
+            "name": "deer"
+        },
+        {
+            "n_frames": 127,
+            "name": "giant-slalom"
+        },
+        {
+            "n_frames": 86,
+            "name": "girl-dog"
+        },
+        {
+            "n_frames": 79,
+            "name": "golf"
+        },
+        {
+            "n_frames": 55,
+            "name": "guitar-violin"
+        },
+        {
+            "n_frames": 60,
+            "name": "gym"
+        },
+        {
+            "n_frames": 49,
+            "name": "helicopter"
+        },
+        {
+            "n_frames": 58,
+            "name": "horsejump-stick"
+        },
+        {
+            "n_frames": 81,
+            "name": "hoverboard"
+        },
+        {
+            "n_frames": 43,
+            "name": "lock"
+        },
+        {
+            "n_frames": 75,
+            "name": "man-bike"
+        },
+        {
+            "n_frames": 83,
+            "name": "monkeys-trees"
+        },
+        {
+            "n_frames": 69,
+            "name": "mtb-race"
+        },
+        {
+            "n_frames": 57,
+            "name": "orchid"
+        },
+        {
+            "n_frames": 67,
+            "name": "people-sunset"
+        },
+        {
+            "n_frames": 31,
+            "name": "planes-crossing"
+        },
+        {
+            "n_frames": 70,
+            "name": "rollercoaster"
+        },
+        {
+            "n_frames": 86,
+            "name": "salsa"
+        },
+        {
+            "n_frames": 80,
+            "name": "seasnake"
+        },
+        {
+            "n_frames": 68,
+            "name": "skate-jump"
+        },
+        {
+            "n_frames": 60,
+            "name": "slackline"
+        },
+        {
+            "n_frames": 88,
+            "name": "subway"
+        },
+        {
+            "n_frames": 72,
+            "name": "tandem"
+        },
+        {
+            "n_frames": 75,
+            "name": "tennis-vest"
+        },
+        {
+            "n_frames": 65,
+            "name": "tractor"
+        }
+    ],
     "train": [
         {
             "n_frames": 82,
-            "n_objects": 1,
             "name": "bear"
         },
         {
             "n_frames": 90,
-            "n_objects": 2,
             "name": "bmx-bumps"
         },
         {
             "n_frames": 75,
-            "n_objects": 1,
             "name": "boat"
         },
         {
             "n_frames": 87,
-            "n_objects": 3,
             "name": "boxing-fisheye"
         },
         {
             "n_frames": 71,
-            "n_objects": 1,
             "name": "breakdance-flare"
         },
         {
             "n_frames": 80,
-            "n_objects": 1,
             "name": "bus"
         },
         {
             "n_frames": 80,
-            "n_objects": 1,
             "name": "car-turn"
         },
         {
             "n_frames": 89,
-            "n_objects": 2,
             "name": "cat-girl"
         },
         {
             "n_frames": 63,
-            "n_objects": 3,
             "name": "classic-car"
         },
         {
             "n_frames": 84,
-            "n_objects": 3,
             "name": "color-run"
         },
         {
             "n_frames": 52,
-            "n_objects": 3,
             "name": "crossing"
         },
         {
             "n_frames": 60,
-            "n_objects": 1,
             "name": "dance-jump"
         },
         {
             "n_frames": 62,
-            "n_objects": 3,
             "name": "dancing"
         },
         {
             "n_frames": 76,
-            "n_objects": 3,
             "name": "disc-jockey"
         },
         {
             "n_frames": 25,
-            "n_objects": 1,
             "name": "dog-agility"
         },
         {
             "n_frames": 86,
-            "n_objects": 5,
             "name": "dog-gooses"
         },
         {
             "n_frames": 83,
-            "n_objects": 4,
             "name": "dogs-scale"
         },
         {
             "n_frames": 64,
-            "n_objects": 1,
             "name": "drift-turn"
         },
         {
             "n_frames": 91,
-            "n_objects": 5,
             "name": "drone"
         },
         {
             "n_frames": 80,
-            "n_objects": 1,
             "name": "elephant"
         },
         {
             "n_frames": 80,
-            "n_objects": 1,
             "name": "flamingo"
         },
         {
             "n_frames": 80,
-            "n_objects": 1,
             "name": "hike"
         },
         {
             "n_frames": 75,
-            "n_objects": 3,
             "name": "hockey"
         },
         {
             "n_frames": 60,
-            "n_objects": 2,
             "name": "horsejump-low"
         },
         {
             "n_frames": 68,
-            "n_objects": 2,
             "name": "kid-football"
         },
         {
             "n_frames": 80,
-            "n_objects": 3,
             "name": "kite-walk"
         },
         {
             "n_frames": 100,
-            "n_objects": 1,
             "name": "koala"
         },
         {
             "n_frames": 65,
-            "n_objects": 2,
             "name": "lady-running"
         },
         {
             "n_frames": 73,
-            "n_objects": 8,
             "name": "lindy-hop"
         },
         {
             "n_frames": 52,
-            "n_objects": 5,
             "name": "longboard"
         },
         {
             "n_frames": 70,
-            "n_objects": 1,
             "name": "lucia"
         },
         {
             "n_frames": 70,
-            "n_objects": 1,
             "name": "mallard-fly"
         },
         {
             "n_frames": 80,
-            "n_objects": 1,
             "name": "mallard-water"
         },
         {
             "n_frames": 70,
-            "n_objects": 6,
             "name": "miami-surf"
         },
         {
             "n_frames": 60,
-            "n_objects": 2,
             "name": "motocross-bumps"
         },
         {
             "n_frames": 43,
-            "n_objects": 3,
             "name": "motorbike"
         },
         {
             "n_frames": 46,
-            "n_objects": 2,
             "name": "night-race"
         },
         {
             "n_frames": 70,
-            "n_objects": 2,
             "name": "paragliding"
         },
         {
             "n_frames": 38,
-            "n_objects": 2,
             "name": "planes-water"
         },
         {
             "n_frames": 50,
-            "n_objects": 1,
             "name": "rallye"
         },
         {
             "n_frames": 90,
-            "n_objects": 1,
             "name": "rhino"
         },
         {
             "n_frames": 35,
-            "n_objects": 1,
             "name": "rollerblade"
         },
         {
             "n_frames": 80,
-            "n_objects": 7,
             "name": "schoolgirls"
         },
         {
             "n_frames": 91,
-            "n_objects": 2,
             "name": "scooter-board"
         },
         {
             "n_frames": 75,
-            "n_objects": 2,
             "name": "scooter-gray"
         },
         {
             "n_frames": 68,
-            "n_objects": 5,
             "name": "sheep"
         },
         {
             "n_frames": 80,
-            "n_objects": 2,
             "name": "skate-park"
         },
         {
             "n_frames": 66,
-            "n_objects": 2,
             "name": "snowboard"
         },
         {
             "n_frames": 48,
-            "n_objects": 1,
             "name": "soccerball"
         },
         {
             "n_frames": 91,
-            "n_objects": 2,
             "name": "stroller"
         },
         {
             "n_frames": 71,
-            "n_objects": 2,
             "name": "stunt"
         },
         {
             "n_frames": 55,
-            "n_objects": 3,
             "name": "surf"
         },
         {
             "n_frames": 60,
-            "n_objects": 3,
             "name": "swing"
         },
         {
             "n_frames": 70,
-            "n_objects": 2,
             "name": "tennis"
         },
         {
             "n_frames": 76,
-            "n_objects": 3,
             "name": "tractor-sand"
         },
         {
             "n_frames": 80,
-            "n_objects": 4,
             "name": "train"
         },
         {
             "n_frames": 59,
-            "n_objects": 3,
             "name": "tuk-tuk"
         },
         {
             "n_frames": 65,
-            "n_objects": 2,
             "name": "upside-down"
         },
         {
             "n_frames": 67,
-            "n_objects": 1,
             "name": "varanus-cage"
         },
         {
             "n_frames": 72,
-            "n_objects": 2,
             "name": "walking"
         }
     ],
     "val": [
         {
             "n_frames": 69,
-            "n_objects": 2,
             "name": "bike-packing"
         },
         {
             "n_frames": 50,
-            "n_objects": 1,
             "name": "blackswan"
         },
         {
             "n_frames": 80,
-            "n_objects": 2,
             "name": "bmx-trees"
         },
         {
             "n_frames": 84,
-            "n_objects": 1,
             "name": "breakdance"
         },
         {
             "n_frames": 90,
-            "n_objects": 1,
             "name": "camel"
         },
         {
             "n_frames": 75,
-            "n_objects": 1,
             "name": "car-roundabout"
         },
         {
             "n_frames": 40,
-            "n_objects": 1,
             "name": "car-shadow"
         },
         {
             "n_frames": 104,
-            "n_objects": 1,
             "name": "cows"
         },
         {
             "n_frames": 90,
-            "n_objects": 1,
             "name": "dance-twirl"
         },
         {
             "n_frames": 60,
-            "n_objects": 1,
             "name": "dog"
         },
         {
             "n_frames": 66,
-            "n_objects": 3,
             "name": "dogs-jump"
         },
         {
             "n_frames": 52,
-            "n_objects": 1,
             "name": "drift-chicane"
         },
         {
             "n_frames": 50,
-            "n_objects": 1,
             "name": "drift-straight"
         },
         {
             "n_frames": 90,
-            "n_objects": 1,
             "name": "goat"
         },
         {
             "n_frames": 78,
-            "n_objects": 5,
             "name": "gold-fish"
         },
         {
             "n_frames": 50,
-            "n_objects": 2,
             "name": "horsejump-high"
         },
         {
             "n_frames": 81,
-            "n_objects": 3,
             "name": "india"
         },
         {
             "n_frames": 34,
-            "n_objects": 2,
             "name": "judo"
         },
         {
             "n_frames": 50,
-            "n_objects": 3,
             "name": "kite-surf"
         },
         {
             "n_frames": 47,
-            "n_objects": 5,
             "name": "lab-coat"
         },
         {
             "n_frames": 49,
-            "n_objects": 1,
             "name": "libby"
         },
         {
             "n_frames": 50,
-            "n_objects": 3,
             "name": "loading"
         },
         {
             "n_frames": 79,
-            "n_objects": 2,
             "name": "mbike-trick"
         },
         {
             "n_frames": 40,
-            "n_objects": 2,
             "name": "motocross-jump"
         },
         {
             "n_frames": 80,
-            "n_objects": 3,
             "name": "paragliding-launch"
         },
         {
             "n_frames": 100,
-            "n_objects": 1,
             "name": "parkour"
         },
         {
             "n_frames": 79,
-            "n_objects": 3,
             "name": "pigs"
         },
         {
             "n_frames": 43,
-            "n_objects": 2,
             "name": "scooter-black"
         },
         {
             "n_frames": 40,
-            "n_objects": 3,
             "name": "shooting"
         },
         {
             "n_frames": 99,
-            "n_objects": 3,
             "name": "soapbox"
         }
     ]

@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:26
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-17 09:58:09
+# @Last Modified time: 2020-05-01 09:57:02
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -46,13 +46,12 @@ def inference_net(cfg):
     stm.eval()
 
     # The inference loop
-    for idx, (video_name, n_objects, frames, masks) in enumerate(test_data_loader):
+    for idx, (video_name, n_objects, frames, masks, target_objects) in enumerate(test_data_loader):
         with torch.no_grad():
-            est_probs = stm(frames, masks, n_objects, cfg.TEST.MEMORIZE_EVERY)
+            est_probs = stm(frames, masks, target_objects, n_objects, cfg.TEST.MEMORIZE_EVERY)
 
             video_name = video_name[0]
-            output_folder = os.path.join(cfg.DIR.OUT_PATH, 'benchmark', cfg.DATASET.TEST_DATASET,
-                                         video_name)
+            output_folder = os.path.join(cfg.DIR.OUT_PATH, 'benchmark', video_name)
             if not os.path.exists(output_folder):
                 os.makedirs(output_folder)
 
