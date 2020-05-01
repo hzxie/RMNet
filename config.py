@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-30 21:11:47
+# @Last Modified time: 2020-05-01 10:46:04
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -86,7 +86,7 @@ __C.PAVI.TAGS                                    = ['stm']
 # Train
 #
 __C.TRAIN                                        = edict()
-__C.TRAIN.BATCH_SIZE                             = 4
+__C.TRAIN.BATCH_SIZE                             = 1
 __C.TRAIN.N_EPOCHS                               = 150
 __C.TRAIN.N_MAX_OBJECTS                          = 3
 __C.TRAIN.N_MAX_FRAMES                           = 3
