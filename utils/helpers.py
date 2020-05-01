@@ -2,12 +2,14 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-29 16:52:09
+# @Last Modified time: 2020-05-01 11:01:14
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
 import scipy.ndimage.morphology
 import torch
+
+from PIL import Image
 
 
 def var_or_cuda(x):
@@ -71,12 +73,8 @@ def img_normalize(image, mean, std, order='HWC'):
 
 
 def get_segmentation(frame, mask, normalization_params, ignore_idx=255, alpha=0.4):
-    mask = mask.cpu().numpy()
-    if frame is None:
-        return mask
-
-    frame = img_denormalize(frame, normalization_params['mean'], normalization_params['std'])
-    PALETTE = np.reshape([
+    PALETTE = np.array([[i, i, i] for i in range(256)])
+    PALETTE[:16] = np.array([
         [0, 0, 0],
         [128, 0, 0],
         [0, 128, 0],
@@ -93,14 +91,15 @@ def get_segmentation(frame, mask, normalization_params, ignore_idx=255, alpha=0.
         [191, 0, 128],
         [64, 128, 128],
         [191, 128, 128],
-        [0, 64, 0],
-        [128, 64, 0],
-        [0, 191, 0],
-        [128, 191, 0],
-        [0, 64, 128],
-        [128, 64, 128],
-    ], (-1, 3))
+    ])
 
+    mask = mask.cpu().numpy()
+    if frame is None:
+        mask = Image.fromarray(mask.astype(np.uint8))
+        mask.putpalette(PALETTE.reshape(-1).tolist())
+        return mask
+
+    frame = img_denormalize(frame, normalization_params['mean'], normalization_params['std'])
     objects = np.unique(mask)
     for o_id in objects[1:]:
         if o_id == ignore_idx:
@@ -113,4 +112,4 @@ def get_segmentation(frame, mask, normalization_params, ignore_idx=255, alpha=0.
         countours = scipy.ndimage.morphology.binary_dilation(binary_mask) ^ binary_mask
         frame[countours, :] = 0
 
-    return frame
+    return Image.fromarray(frame)

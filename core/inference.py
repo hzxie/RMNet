@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:26
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-01 09:57:02
+# @Last Modified time: 2020-05-01 11:03:29
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -13,7 +13,6 @@ import utils.data_loaders
 import utils.helpers
 
 from tqdm import tqdm
-from PIL import Image
 
 from models.stm import STM
 
@@ -51,7 +50,8 @@ def inference_net(cfg):
             est_probs = stm(frames, masks, target_objects, n_objects, cfg.TEST.MEMORIZE_EVERY)
 
             video_name = video_name[0]
-            output_folder = os.path.join(cfg.DIR.OUT_PATH, 'benchmark', video_name)
+            output_folder = os.path.join(cfg.DIR.OUT_PATH, 'benchmark', cfg.CONST.EXP_NAME,
+                                         video_name)
             if not os.path.exists(output_folder):
                 os.makedirs(output_folder)
 
@@ -65,4 +65,4 @@ def inference_net(cfg):
                     'mean': cfg.CONST.DATASET_MEAN,
                     'std': cfg.CONST.DATASET_STD,
                 })
-                Image.fromarray(segmentation).save(os.path.join(output_folder, '%05d.jpg' % i))
+                segmentation.save(os.path.join(output_folder, '%05d.png' % i))
