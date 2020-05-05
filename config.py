@@ -127,3 +127,6 @@ __C.TEST.VISUALIZE_EVERY                         = 10
 __C.TEST.MEMORIZE_EVERY                          = 5
 __C.TEST.TESTING_VIDEOS_INDEXES                  = [0, 2, 3, 8, 10, 18, 19, 24, 27, 29]
 __C.TEST.MAIN_METRIC_NAME                        = 'JF-Mean'
+__C.TEST.FLIPLR                                  = True
+__C.TEST.FLIPUD                                  = False
+__C.TEST.TEST_SCALES                             = [0.75,1.0]
