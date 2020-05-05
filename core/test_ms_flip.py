@@ -138,7 +138,7 @@ def test_ms_flip_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None,
 
                     inter_probs = torch.zeros([B, N, O, H,W])
                     for i in range(N):
-                        inter_probs[:, i, :, :, :] = torch.nn.functional.interpolate(est_probs[:, i, :, :, :],size=[H,W],mode='nearest')
+                        inter_probs[:, i, :, :, :] = torch.nn.functional.interpolate(est_probs[:, i, :, :, :],size=[H,W],mode='bilinear')
                     est_probs=inter_probs
 
                     # print('After est resize')
