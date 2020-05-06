@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-01 18:12:28
+# @Last Modified time: 2020-05-06 08:38:22
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -120,13 +120,12 @@ def train_net(cfg):
             target_objects = utils.helpers.var_or_cuda(target_objects)
             try:
                 est_probs = stm(frames, masks, target_objects, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
+                est_probs = utils.helpers.var_or_cuda(est_probs[:, 1:]).permute(0, 2, 1, 3, 4)
+                masks = torch.argmax(masks[:, 1:], dim=2)
+                loss = nll_loss(torch.log(est_probs), masks) + lovasz_loss(est_probs, masks)
             except Exception as ex:
                 logging.warn(ex)
                 continue
-
-            est_probs = utils.helpers.var_or_cuda(est_probs[:, 1:]).permute(0, 2, 1, 3, 4)
-            masks = torch.argmax(masks[:, 1:], dim=2)
-            loss = nll_loss(torch.log(est_probs), masks) + lovasz_loss(est_probs, masks)
 
             losses.update(loss.item())
             stm.zero_grad()

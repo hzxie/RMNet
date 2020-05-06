@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:00:36
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-01 11:03:26
+# @Last Modified time: 2020-05-06 09:37:47
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -19,7 +19,6 @@ from pprint import pprint
 from core.train import train_net
 from core.test import test_net
 from core.inference import inference_net
-from core.test_ms_flip import test_ms_flip_net
 
 
 def get_args_from_command_line():
@@ -32,7 +31,6 @@ def get_args_from_command_line():
                         type=str)
     parser.add_argument('--gpu', dest='gpu_id', help='GPU device to use', default=None, type=str)
     parser.add_argument('--test', dest='test', help='Test neural networks', action='store_true')
-    parser.add_argument('--test_ms_flip',dest='test_ms_flip',help='Test neural network with multi scale and flip',action='store_true')
     parser.add_argument('--inference',
                         dest='inference',
                         help='Inference for benchmark',
@@ -72,8 +70,6 @@ def main():
 
         if args.test:
             test_net(cfg)
-        elif args.test_ms_flip:
-            test_ms_flip_net(cfg)
         else:
             inference_net(cfg)
 
