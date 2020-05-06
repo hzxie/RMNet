@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-01 18:19:46
+# @Last Modified time: 2020-05-06 09:55:40
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -127,6 +127,5 @@ __C.TEST.VISUALIZE_EVERY                         = 10
 __C.TEST.MEMORIZE_EVERY                          = 5
 __C.TEST.TESTING_VIDEOS_INDEXES                  = [0, 2, 3, 8, 10, 18, 19, 24, 27, 29]
 __C.TEST.MAIN_METRIC_NAME                        = 'JF-Mean'
-__C.TEST.FLIPLR                                  = True
-__C.TEST.FLIPUD                                  = False
-__C.TEST.TEST_SCALES                             = [0.75,1.0]
+__C.TEST.FLIP_LR                                 = True
+__C.TEST.FRAME_SCALES                            = [1.0, 1.25]

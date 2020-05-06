@@ -2,12 +2,13 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-01 11:01:14
+# @Last Modified time: 2020-05-06 09:52:37
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
 import scipy.ndimage.morphology
 import torch
+import torch.nn.functional as F
 
 from PIL import Image
 
@@ -35,6 +36,33 @@ def init_weights(m):
 
 def count_parameters(network):
     return sum(p.numel() for p in network.parameters())
+
+
+def multi_scale_inference(cfg, network, frames, masks, target_objects, n_objects):
+    _, n, c, h, w = frames.size()
+    est_probs = []
+    # ONLY the first frame is used during the inference
+    masks = masks[:, 0].unsqueeze(dim=1)
+
+    for fs in cfg.TEST.FRAME_SCALES:
+        _frames = F.interpolate(frames[0], scale_factor=fs, mode='bilinear',
+                                align_corners=False).unsqueeze(dim=0)
+        _masks = F.interpolate(masks[0].float(), scale_factor=fs,
+                               mode='nearest').int().unsqueeze(dim=0)
+
+        _est_probs = network(_frames, _masks, target_objects, n_objects, cfg.TEST.MEMORIZE_EVERY)
+        est_probs.append(
+            F.interpolate(_est_probs[0], size=(h, w), mode='bilinear',
+                          align_corners=False).unsqueeze(dim=0))
+
+        if cfg.TEST.FLIP_LR:
+            _est_probs = network(torch.flip(_frames, dims=[4]), torch.flip(_masks, dims=[4]),
+                                 target_objects, n_objects, cfg.TEST.MEMORIZE_EVERY)
+            est_probs.append(
+                F.interpolate(_est_probs[0], size=(h, w), mode='bilinear',
+                              align_corners=False).unsqueeze(dim=0))
+
+    return torch.mean(torch.stack(est_probs), dim=0)
 
 
 def to_onehot(mask, k):
