@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:00:36
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-06 09:37:47
+# @Last Modified time: 2020-05-06 10:45:29
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -61,7 +61,7 @@ def main():
         cfg.CONST.WEIGHTS = args.weights
 
     # Start train/test process
-    if not args.test and not args.inference and not args.test_ms_flip:
+    if not args.test and not args.inference:
         train_net(cfg)
     else:
         if 'WEIGHTS' not in cfg.CONST or not os.path.exists(cfg.CONST.WEIGHTS):

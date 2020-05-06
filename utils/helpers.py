@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-06 09:52:37
+# @Last Modified time: 2020-05-06 10:16:43
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -58,6 +58,7 @@ def multi_scale_inference(cfg, network, frames, masks, target_objects, n_objects
         if cfg.TEST.FLIP_LR:
             _est_probs = network(torch.flip(_frames, dims=[4]), torch.flip(_masks, dims=[4]),
                                  target_objects, n_objects, cfg.TEST.MEMORIZE_EVERY)
+            _est_probs = torch.flip(_est_probs, dims=[4])
             est_probs.append(
                 F.interpolate(_est_probs[0], size=(h, w), mode='bilinear',
                               align_corners=False).unsqueeze(dim=0))
