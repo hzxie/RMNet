@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:26
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-06 09:08:11
+# @Last Modified time: 2020-05-08 20:52:00
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -45,10 +45,10 @@ def inference_net(cfg):
     stm.eval()
 
     # The inference loop
-    for idx, (video_name, n_objects, frames, masks, target_objects) in enumerate(test_data_loader):
+    for idx, (video_name, n_objects, frames, depths, masks) in enumerate(test_data_loader):
         with torch.no_grad():
-            est_probs = utils.helpers.multi_scale_inference(cfg, stm, frames, masks,
-                                                            target_objects, n_objects)
+            frames = torch.cat([frames, depths], dim=2)
+            est_probs = utils.helpers.multi_scale_inference(cfg, stm, frames, masks, n_objects)
 
             video_name = video_name[0]
             output_folder = os.path.join(cfg.DIR.OUT_PATH, 'benchmark', cfg.CONST.EXP_NAME,

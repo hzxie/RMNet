@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-01 18:40:45
+# @Last Modified time: 2020-05-08 21:37:24
 # @Email:  cshzxie@gmail.com
 
 import math
@@ -29,30 +29,31 @@ class Compose(object):
                 'callback': transformer(parameters),
             })  # yapf: disable
 
-    def __call__(self, frames, masks):
+    def __call__(self, frames, depths, masks):
         for tr in self.transformers:
             transform = tr['callback']
-            frames, masks = transform(frames, masks)
+            frames, depths, masks = transform(frames, depths, masks)
 
-        return frames, masks
+        return frames, depths, masks
 
 
 class ToTensor(object):
     def __init__(self, parameters):
         pass
 
-    def __call__(self, frames, masks):
+    def __call__(self, frames, depths, masks):
         frames = torch.from_numpy(np.array(frames)).float().permute(0, 3, 1, 2)
+        depths = torch.from_numpy(np.array(depths)).float().permute(0, 3, 1, 2)
         masks = torch.from_numpy(np.array(masks))
 
-        return frames, masks
+        return frames, depths, masks
 
 
 class ReorganizeObjectID(object):
     def __init__(self, parameters):
         self.ignore_idx = parameters['ignore_idx']
 
-    def __call__(self, frames, masks):
+    def __call__(self, frames, depths, masks):
         mask_indexes = np.unique(masks[0])
         mask_indexes = mask_indexes[mask_indexes != self.ignore_idx]
 
@@ -63,7 +64,7 @@ class ReorganizeObjectID(object):
 
             masks[m_idx] = _m.astype(np.uint8)
 
-        return frames, masks
+        return frames, depths, masks
 
 
 class ToOneHot(object):
@@ -71,14 +72,14 @@ class ToOneHot(object):
         self.shuffle = parameters['shuffle']
         self.n_objects = parameters['n_objects']
 
-    def __call__(self, frames, masks):
+    def __call__(self, frames, depths, masks):
         random_permutation = np.random.permutation(self.n_objects) + 1
         random_permutation = np.insert(random_permutation, 0, 0)    # Make background ID = 0
         masks = [utils.helpers.to_onehot(m, self.n_objects + 1) for m in masks]
         if self.shuffle:
             masks = [m[random_permutation, ...] for m in masks]
 
-        return frames, masks
+        return frames, depths, masks
 
 
 class Normalize(object):
@@ -86,45 +87,40 @@ class Normalize(object):
         self.mean = parameters['mean']
         self.std = parameters['std']
 
-    def __call__(self, frames, masks):
+    def __call__(self, frames, depths, masks):
         for idx, (f, m) in enumerate(zip(frames, masks)):
             frames[idx] = utils.helpers.img_normalize(f, self.mean, self.std).astype(np.float32)
             masks[idx] = m.astype(np.uint8)
 
-        return frames, masks
+        return frames, depths, masks
 
 
 class RandomPermuteRGB(object):
     def __init__(self, parameters):
         pass
 
-    def __call__(self, frames, masks):
+    def __call__(self, frames, depths, masks):
         random_permutation = np.random.permutation(3)
         for idx, f in enumerate(frames):
             frames[idx] = f[..., random_permutation]
 
-        return frames, masks
+        return frames, depths, masks
 
 
 class RandomFlip(object):
     def __init__(self, parameters):
         pass
 
-    def __call__(self, frames, masks):
+    def __call__(self, frames, depths, masks):
         rnd_value = random.random()
 
-        for idx, (f, m) in enumerate(zip(frames, masks)):
-            if rnd_value <= 0.25:
-                frames[idx] = np.flip(f, axis=0)
-                masks[idx] = np.flip(m, axis=0)
-            elif rnd_value <= 0.5:
+        for idx, (f, d, m) in enumerate(zip(frames, depths, masks)):
+            if rnd_value <= 0.5:
                 frames[idx] = np.flip(f, axis=1)
+                depths[idx] = np.flip(d, axis=1)
                 masks[idx] = np.flip(m, axis=1)
-            elif rnd_value <= 0.75:
-                frames[idx] = np.flip(f, axis=(0, 1))
-                masks[idx] = np.flip(m, axis=(0, 1))
 
-        return frames, masks
+        return frames, depths, masks
 
 
 class Resize(object):
@@ -132,7 +128,7 @@ class Resize(object):
         self.size = parameters['size']
         self.keep_ratio = parameters['keep_ratio']
 
-    def __call__(self, frames, masks):
+    def __call__(self, frames, depths, masks):
         img_h, img_w = masks[0].shape
 
         height = img_h
@@ -148,10 +144,15 @@ class Resize(object):
         frames = [
             np.array(Image.fromarray(f).resize((width, height), Image.BILINEAR)) for f in frames
         ]
+        depths = [
+            np.expand_dims(np.array(
+                Image.fromarray(d.squeeze()).resize((width, height), Image.BILINEAR)),
+                           axis=2) for d in depths
+        ]
         masks = [
             np.array(Image.fromarray(m).resize((width, height), Image.NEAREST)) for m in masks
         ]
-        return frames, masks
+        return frames, depths, masks
 
 
 class RandomCrop(object):
@@ -160,7 +161,7 @@ class RandomCrop(object):
         self.width = parameters['width']
         self.ignore_idx = parameters['ignore_idx']
 
-    def __call__(self, frames, masks):
+    def __call__(self, frames, depths, masks):
         n_frames = len(frames)
         for i in range(n_frames):
             x_min = sys.maxsize
@@ -211,9 +212,10 @@ class RandomCrop(object):
 
             # Crop the frame and mask
             frames[i] = frames[i][y_min:y_min + self.height, x_min:x_min + self.width, :]
+            depths[i] = depths[i][y_min:y_min + self.height, x_min:x_min + self.width, :]
             masks[i] = masks[i][y_min:y_min + self.height, x_min:x_min + self.width]
 
-        return frames, masks
+        return frames, depths, masks
 
 
 class ColorJitter(object):
@@ -223,7 +225,7 @@ class ColorJitter(object):
         self.saturation = parameters['saturation']
         self.hue = parameters['hue']
 
-    def __call__(self, frames, masks):
+    def __call__(self, frames, depths, masks):
         jitter = torchvision.transforms.ColorJitter.get_params(brightness=self.brightness,
                                                                contrast=self.contrast,
                                                                saturation=self.saturation,
@@ -231,7 +233,7 @@ class ColorJitter(object):
         for idx, f in enumerate(frames):
             frames[idx] = np.array(jitter(Image.fromarray(f)))
 
-        return frames, masks
+        return frames, depths, masks
 
 
 class RandomAffine(object):
@@ -243,10 +245,10 @@ class RandomAffine(object):
         self.frame_fill_color = parameters['frame_fill_color']
         self.mask_fill_color = parameters['mask_fill_color']
 
-    def __call__(self, frames, masks):
+    def __call__(self, frames, depths, masks):
         img_h, img_w = masks[0].shape
 
-        for idx, (f, m) in enumerate(zip(frames, masks)):
+        for idx, (f, d, m) in enumerate(zip(frames, depths, masks)):
             degrees, translate, scale, shears = torchvision.transforms.RandomAffine.get_params(
                 degrees=self.degrees,
                 translate=self.translate,
@@ -261,6 +263,14 @@ class RandomAffine(object):
                              scale,
                              shears,
                              fillcolor=tuple(self.frame_fill_color)))
+            depths[idx] = np.expand_dims(np.array(
+                self._affine(Image.fromarray(d.squeeze()),
+                             degrees,
+                             translate,
+                             scale,
+                             shears,
+                             fillcolor=np.max(d) + 1)),
+                                         axis=2)
             masks[idx] = np.array(
                 self._affine(Image.fromarray(m),
                              degrees,
@@ -269,7 +279,7 @@ class RandomAffine(object):
                              shears,
                              fillcolor=self.mask_fill_color))
 
-        return frames, masks
+        return frames, depths, masks
 
     def _affine(self, img, degree, translate, scale, shear, resample=0, fillcolor=None):
         center = (img.size[0] * 0.5 + 0.5, img.size[1] * 0.5 + 0.5)

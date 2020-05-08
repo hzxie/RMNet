@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-06 10:16:43
+# @Last Modified time: 2020-05-08 20:52:24
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -38,7 +38,7 @@ def count_parameters(network):
     return sum(p.numel() for p in network.parameters())
 
 
-def multi_scale_inference(cfg, network, frames, masks, target_objects, n_objects):
+def multi_scale_inference(cfg, network, frames, masks, n_objects):
     _, n, c, h, w = frames.size()
     est_probs = []
     # ONLY the first frame is used during the inference
@@ -50,14 +50,14 @@ def multi_scale_inference(cfg, network, frames, masks, target_objects, n_objects
         _masks = F.interpolate(masks[0].float(), scale_factor=fs,
                                mode='nearest').int().unsqueeze(dim=0)
 
-        _est_probs = network(_frames, _masks, target_objects, n_objects, cfg.TEST.MEMORIZE_EVERY)
+        _est_probs = network(_frames, _masks, n_objects, cfg.TEST.MEMORIZE_EVERY)
         est_probs.append(
             F.interpolate(_est_probs[0], size=(h, w), mode='bilinear',
                           align_corners=False).unsqueeze(dim=0))
 
         if cfg.TEST.FLIP_LR:
             _est_probs = network(torch.flip(_frames, dims=[4]), torch.flip(_masks, dims=[4]),
-                                 target_objects, n_objects, cfg.TEST.MEMORIZE_EVERY)
+                                 n_objects, cfg.TEST.MEMORIZE_EVERY)
             _est_probs = torch.flip(_est_probs, dims=[4])
             est_probs.append(
                 F.interpolate(_est_probs[0], size=(h, w), mode='bilinear',

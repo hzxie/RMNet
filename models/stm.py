@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-06 09:52:41
+# @Last Modified time: 2020-05-08 21:39:06
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -49,11 +49,11 @@ class ResBlock(torch.nn.Module):
 class EncoderMemory(torch.nn.Module):
     def __init__(self):
         super(EncoderMemory, self).__init__()
+        self.conv1_f = torch.nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.conv1_m = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.conv1_o = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
         resnet = torchvision.models.resnet50(pretrained=True)
-        self.conv1 = resnet.conv1
         self.bn1 = resnet.bn1
         self.relu = resnet.relu    # 1/2, 64
         self.maxpool = resnet.maxpool
@@ -68,7 +68,7 @@ class EncoderMemory(torch.nn.Module):
         m = torch.unsqueeze(in_m, dim=1).float()    # add channel dim
         o = torch.unsqueeze(in_o, dim=1).float()    # add channel dim
 
-        x = self.conv1(in_f) + self.conv1_m(m) + self.conv1_o(o)
+        x = self.conv1_f(in_f) + self.conv1_m(m) + self.conv1_o(o)
         x = self.bn1(x)
         c1 = self.relu(x)    # 1/2, 64
         x = self.maxpool(c1)    # 1/4, 64
@@ -81,8 +81,9 @@ class EncoderMemory(torch.nn.Module):
 class EncoderQuery(torch.nn.Module):
     def __init__(self):
         super(EncoderQuery, self).__init__()
+        self.conv1 = torch.nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3, bias=False)
+
         resnet = torchvision.models.resnet50(pretrained=True)
-        self.conv1 = resnet.conv1
         self.bn1 = resnet.bn1
         self.relu = resnet.relu    # 1/2, 64
         self.maxpool = resnet.maxpool
@@ -275,7 +276,7 @@ class STM(torch.nn.Module):
         logit = torch.log((em / (1 - em)))
         return logit
 
-    def segment(self, frame, keys, values, target_objects, n_objects):
+    def segment(self, frame, keys, values, n_objects):
         B, K, keydim, T, H, W = keys.shape
         # print(frame.shape)    # torch.Size([bs, 3, 480, 910])
         [frame], pad = self.pad_divide_by([frame], 16, (frame.size()[2], frame.size()[3]))
@@ -344,7 +345,7 @@ class STM(torch.nn.Module):
         # print(logit.shape)    # torch.Size([bs, n_objects, 480, 912])
         return logit
 
-    def forward(self, frames, masks, target_objects, n_objects, memorize_every):
+    def forward(self, frames, masks, n_objects, memorize_every):
         batch_size, n_frames, _, h, w = frames.size()
         k = masks.size(2)
         est_masks = torch.zeros(batch_size, n_frames, k, h, w).float()
@@ -371,7 +372,7 @@ class STM(torch.nn.Module):
                 keys, values = this_keys, this_values
 
             # Segment
-            logit = self.segment(frames[:, t], this_keys, this_values, target_objects, n_objects)
+            logit = self.segment(frames[:, t], this_keys, this_values, n_objects)
             est_masks[:, t] = F.softmax(logit, dim=1)
 
         return est_masks
