@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-06 09:54:10
+# @Last Modified time: 2020-05-08 20:51:48
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -58,7 +58,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
     test_losses = AverageMeter()
     test_metrics = AverageMeter(Metrics.names())
 
-    for idx, (video_name, n_objects, frames, masks, target_objects) in enumerate(test_data_loader):
+    for idx, (video_name, n_objects, frames, depths, masks) in enumerate(test_data_loader):
         # Test only selected videos to accelerate the testing process
         if not epoch_idx == -1 and idx not in cfg.TEST.TESTING_VIDEOS_INDEXES:
             continue
@@ -68,16 +68,17 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
             if torch.cuda.device_count() > 1:
                 frames = utils.helpers.var_or_cuda(frames)
                 masks = utils.helpers.var_or_cuda(masks)
-                target_objects = utils.helpers.var_or_cuda(target_objects)
+                depths = utils.helpers.var_or_cuda(depths)
 
             # Fix bugs: OOM error for large videos
             try:
+                frames = torch.cat([frames, depths], dim=2)
+
                 if epoch_idx == -1:
                     est_probs = utils.helpers.multi_scale_inference(cfg, stm, frames, masks,
-                                                                    target_objects, n_objects)
+                                                                    n_objects)
                 else:
-                    est_probs = stm(frames, masks, target_objects, n_objects,
-                                    cfg.TEST.MEMORIZE_EVERY)
+                    est_probs = stm(frames, masks, n_objects, cfg.TEST.MEMORIZE_EVERY)
 
                 est_probs = est_probs.permute(0, 2, 1, 3, 4)
                 masks = torch.argmax(masks, dim=2)

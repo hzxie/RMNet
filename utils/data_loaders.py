@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-06 08:37:14
+# @Last Modified time: 2020-05-08 21:35:03
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -28,7 +28,7 @@ class DatasetSubset(Enum):
 
 class Dataset(torch.utils.data.dataset.Dataset):
     def __init__(self, file_list, transforms=None, options=None):
-        self.cfg = options['g_cfg']
+        self.ignore_idx = options['ignore_idx']
         self.n_max_frames = options['n_max_frames']
         self.n_max_objects = options['n_max_objects']
         self.file_list = file_list
@@ -42,6 +42,7 @@ class Dataset(torch.utils.data.dataset.Dataset):
         video = self.file_list[idx]
         frames = []
         masks = []
+        depths = []
 
         frame_indexes = self._get_frame_indexes(video['n_frames'], self.n_max_frames)
         for fi in frame_indexes:
@@ -50,25 +51,20 @@ class Dataset(torch.utils.data.dataset.Dataset):
             mask = IO.get(video['masks'][fi])
             mask = mask.convert('P') if mask is not None else np.zeros(frame.shape[:-1])
             masks.append(np.array(mask))
+            depth = IO.get(video['depths'][fi])
+            depths.append(depth)
+
+        # Number of objects in the masks
+        mask_indexes = np.unique(masks[0])
+        mask_indexes = mask_indexes[mask_indexes != self.ignore_idx]
+        video['n_objects'] = len(mask_indexes) - 1
+        n_objects = min(video['n_objects'], self.n_max_objects)
 
         # Data preprocessing and augmentation
         if self.transforms is not None:
-            frames, masks = self.transforms(frames, masks)
+            frames, depths, masks = self.transforms(frames, depths, masks)
 
-        # Get the target patches from the first frame
-        # Following Enhanced Memory Network for Video Segmentation (Zhou et al.)
-        first_frame = utils.helpers.img_denormalize(frames[0],
-                                                    mean=self.cfg.CONST.DATASET_MEAN,
-                                                    std=self.cfg.CONST.DATASET_STD)
-        first_mask = masks[0].numpy()
-        target_objects, n_objects = self._get_target_objects(
-            first_frame, first_mask, self.cfg.CONST.TARGET_OBJECT_SIZE, {
-                'mean': self.cfg.CONST.DATASET_MEAN,
-                'std': self.cfg.CONST.DATASET_STD
-            })
-
-        # n_objects must above 0 to avoid cuDNN error: CUDNN_STATUS_BAD_PARAM
-        return video['name'], max(1, n_objects), frames, masks, target_objects
+        return video['name'], n_objects, frames, depths, masks
 
     def _get_frame_indexes(self, n_frames, n_max_frames):
         if n_max_frames == 0:
@@ -156,11 +152,12 @@ class DavisDataset(object):
 
         n_max_frames = self.cfg.TRAIN.N_MAX_FRAMES if subset == DatasetSubset.TRAIN else 0
         n_max_objects = self.cfg.TRAIN.N_MAX_OBJECTS if subset == DatasetSubset.TRAIN else self.cfg.TEST.N_MAX_OBJECTS
-        return Dataset(file_list, transforms, {
-            'g_cfg': self.cfg,
-            'n_max_frames': n_max_frames,
-            'n_max_objects': n_max_objects,
-        })
+        return Dataset(
+            file_list, transforms, {
+                'ignore_idx': self.cfg.CONST.IGNORE_IDX,
+                'n_max_frames': n_max_frames,
+                'n_max_objects': n_max_objects,
+            })
 
     def _get_transforms(self, cfg, subset):
         if subset == DatasetSubset.TRAIN:
@@ -265,6 +262,10 @@ class DavisDataset(object):
                     cfg.DATASETS.DAVIS.IMG_FILE_PATH % (v['name'], i)
                     for i in range(v['n_frames'])
                 ],
+                'depths': [
+                    cfg.DATASETS.DAVIS.DEPTH_FILE_PATH % (v['name'], i)
+                    for i in range(v['n_frames'])
+                ],
                 'masks': [
                     cfg.DATASETS.DAVIS.ANNOTATION_FILE_PATH % (v['name'], i)
                     for i in range(v['n_frames'])
@@ -290,11 +291,12 @@ class YoutubeVosDataset(object):
 
         n_max_frames = self.cfg.TRAIN.N_MAX_FRAMES if subset == DatasetSubset.TRAIN else 0
         n_max_objects = self.cfg.TRAIN.N_MAX_OBJECTS if subset == DatasetSubset.TRAIN else self.cfg.TEST.N_MAX_OBJECTS
-        return Dataset(file_list, transforms, {
-            'g_cfg': self.cfg,
-            'n_max_frames': n_max_frames,
-            'n_max_objects': n_max_objects
-        })
+        return Dataset(
+            file_list, transforms, {
+                'ignore_idx': self.cfg.CONST.IGNORE_IDX,
+                'n_max_frames': n_max_frames,
+                'n_max_objects': n_max_objects
+            })
 
     def _get_transforms(self, cfg, subset):
         if subset == DatasetSubset.TRAIN:
@@ -397,6 +399,10 @@ class YoutubeVosDataset(object):
                     cfg.DATASETS.YOUTUBE_VOS.IMG_FILE_PATH % (v, i)
                     for i in frame_indexes
                 ],
+                'depths': [
+                    cfg.DATASETS.YOUTUBE_VOS.DEPTH_FILE_PATH % (v, i)
+                    for i in frame_indexes
+                ],
                 'masks': [
                     cfg.DATASETS.YOUTUBE_VOS.ANNOTATION_FILE_PATH % (v, i)
                     for i in frame_indexes
@@ -415,7 +421,7 @@ class ImageDataset(object):
         transforms = self._get_transforms(self.cfg)
         return Dataset(
             file_list, transforms, {
-                'g_cfg': self.cfg,
+                'ignore_idx': self.cfg.CONST.IGNORE_IDX,
                 'n_max_frames': self.cfg.TRAIN.N_MAX_FRAMES,
                 'n_max_objects': self.cfg.TRAIN.N_MAX_OBJECTS
             })
@@ -497,6 +503,9 @@ class PascalVocDataset(ImageDataset):
                 'frames': [
                     cfg.DATASETS.PASCAL_VOC.IMG_FILE_PATH % i
                 ],
+                'depths': [
+                    cfg.DATASETS.PASCAL_VOC.DEPTH_FILE_PATH % i
+                ],
                 'masks': [
                     cfg.DATASETS.PASCAL_VOC.ANNOTATION_FILE_PATH % i
                 ]
@@ -521,6 +530,9 @@ class EcssdDataset(ImageDataset):
                 'n_frames': 1,
                 'frames': [
                     cfg.DATASETS.ECSSD.IMG_FILE_PATH % i
+                ],
+                'depths': [
+                    cfg.DATASETS.ECSSD.DEPTH_FILE_PATH % i
                 ],
                 'masks': [
                     cfg.DATASETS.ECSSD.ANNOTATION_FILE_PATH % i
@@ -549,6 +561,9 @@ class Msra10kDataset(ImageDataset):
                 'frames': [
                     cfg.DATASETS.MSRA10K.IMG_FILE_PATH % i
                 ],
+                'depths': [
+                    cfg.DATASETS.MSRA10K.DEPTH_FILE_PATH % i
+                ],
                 'masks': [
                     cfg.DATASETS.MSRA10K.ANNOTATION_FILE_PATH % i
                 ]
@@ -575,6 +590,9 @@ class MscocoDataset(ImageDataset):
                 'n_frames': 1,
                 'frames': [
                     cfg.DATASETS.MSCOCO.IMG_FILE_PATH % i
+                ],
+                'depths': [
+                    cfg.DATASETS.MSCOCO.DEPTH_FILE_PATH % i
                 ],
                 'masks': [
                     cfg.DATASETS.MSCOCO.ANNOTATION_FILE_PATH % i
@@ -604,6 +622,9 @@ class DavisFrameDataset(ImageDataset):
                     'n_frames': 1,
                     'frames': [
                         cfg.DATASETS.DAVIS.IMG_FILE_PATH % (v['name'], i)
+                    ],
+                    'depths': [
+                        cfg.DATASETS.DAVIS.DEPTH_FILE_PATH % (v['name'], i)
                     ],
                     'masks': [
                         cfg.DATASETS.DAVIS.ANNOTATION_FILE_PATH % (v['name'], i)

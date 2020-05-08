@@ -2,13 +2,14 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-06 08:38:22
+# @Last Modified time: 2020-05-08 21:31:56
 # @Email:  cshzxie@gmail.com
 
 import logging
 import os
 import random
 import torch
+import uuid
 
 import utils.data_loaders
 import utils.helpers
@@ -53,6 +54,14 @@ def train_net(cfg):
 
     # Move the network to GPU if possible
     if torch.cuda.is_available():
+        if torch.__version__ >= '1.2.0' and cfg.TRAIN.USE_BATCH_NORM:
+            torch.distributed.init_process_group('nccl',
+                                                 init_method='file:///tmp/stm-%s' %
+                                                 uuid.uuid4().hex,
+                                                 world_size=1,
+                                                 rank=0)
+            stm = torch.nn.SyncBatchNorm.convert_sync_batchnorm(stm)
+
         stm = torch.nn.DataParallel(stm).cuda()
 
     # Create the optimizers
@@ -99,8 +108,10 @@ def train_net(cfg):
         data_time = AverageMeter()
         losses = AverageMeter()
 
-        # Do not update BN layers
-        stm.eval()
+        if cfg.TRAIN.USE_BATCH_NORM:
+            stm.train()
+        else:
+            stm.eval()
 
         # Update frame step
         if cfg.TRAIN.USE_RANDOM_FRAME_STEPS:
@@ -111,15 +122,16 @@ def train_net(cfg):
 
         batch_end_time = time()
         n_batches = len(train_data_loader)
-        for batch_idx, (video_name, n_objects, frames, masks,
-                        target_objects) in enumerate(train_data_loader):
+        for batch_idx, (video_name, n_objects, frames, depths,
+                        masks) in enumerate(train_data_loader):
             data_time.update(time() - batch_end_time)
 
             frames = utils.helpers.var_or_cuda(frames)
+            depths = utils.helpers.var_or_cuda(depths)
             masks = utils.helpers.var_or_cuda(masks)
-            target_objects = utils.helpers.var_or_cuda(target_objects)
             try:
-                est_probs = stm(frames, masks, target_objects, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
+                frames = torch.cat([frames, depths], dim=2)
+                est_probs = stm(frames, masks, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
                 est_probs = utils.helpers.var_or_cuda(est_probs[:, 1:]).permute(0, 2, 1, 3, 4)
                 masks = torch.argmax(masks[:, 1:], dim=2)
                 loss = nll_loss(torch.log(est_probs), masks) + lovasz_loss(est_probs, masks)
