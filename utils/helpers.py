@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-08 20:52:24
+# @Last Modified time: 2020-05-09 00:11:02
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -128,7 +128,7 @@ def get_segmentation(frame, mask, normalization_params, ignore_idx=255, alpha=0.
         mask.putpalette(PALETTE.reshape(-1).tolist())
         return mask
 
-    frame = img_denormalize(frame, normalization_params['mean'], normalization_params['std'])
+    frame = img_denormalize(frame[:3], normalization_params['mean'], normalization_params['std'])
     objects = np.unique(mask)
     for o_id in objects[1:]:
         if o_id == ignore_idx:
