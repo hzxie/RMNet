@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-08 21:37:24
+# @Last Modified time: 2020-05-10 10:32:42
 # @Email:  cshzxie@gmail.com
 
 import math
@@ -88,8 +88,11 @@ class Normalize(object):
         self.std = parameters['std']
 
     def __call__(self, frames, depths, masks):
-        for idx, (f, m) in enumerate(zip(frames, masks)):
+        d_max = 1.0 / np.min(depths)
+
+        for idx, (f, d, m) in enumerate(zip(frames, depths, masks)):
             frames[idx] = utils.helpers.img_normalize(f, self.mean, self.std).astype(np.float32)
+            depths[idx] = 1.0 / d.astype(np.float32) / d_max
             masks[idx] = m.astype(np.uint8)
 
         return frames, depths, masks
