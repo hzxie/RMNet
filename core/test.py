@@ -72,8 +72,6 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
 
             # Fix bugs: OOM error for large videos
             try:
-                frames = torch.cat([frames, depths], dim=2)
-
                 if epoch_idx == -1:
                     est_probs = utils.helpers.multi_scale_inference(cfg, stm, frames, masks,
                                                                     n_objects)

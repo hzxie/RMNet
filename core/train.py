@@ -130,7 +130,6 @@ def train_net(cfg):
             depths = utils.helpers.var_or_cuda(depths)
             masks = utils.helpers.var_or_cuda(masks)
             try:
-                frames = torch.cat([frames, depths], dim=2)
                 est_probs = stm(frames, masks, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
                 est_probs = utils.helpers.var_or_cuda(est_probs[:, 1:]).permute(0, 2, 1, 3, 4)
                 masks = torch.argmax(masks[:, 1:], dim=2)
