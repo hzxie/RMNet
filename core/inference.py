@@ -47,7 +47,6 @@ def inference_net(cfg):
     # The inference loop
     for idx, (video_name, n_objects, frames, depths, masks) in enumerate(test_data_loader):
         with torch.no_grad():
-            frames = torch.cat([frames, depths], dim=2)
             est_probs = utils.helpers.multi_scale_inference(cfg, stm, frames, masks, n_objects)
 
             video_name = video_name[0]

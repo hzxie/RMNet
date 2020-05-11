@@ -49,11 +49,11 @@ class ResBlock(torch.nn.Module):
 class EncoderMemory(torch.nn.Module):
     def __init__(self):
         super(EncoderMemory, self).__init__()
-        self.conv1_f = torch.nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.conv1_m = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.conv1_o = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
         resnet = torchvision.models.resnet50(pretrained=True)
+        self.conv1 = resnet.conv1
         self.bn1 = resnet.bn1
         self.relu = resnet.relu    # 1/2, 64
         self.maxpool = resnet.maxpool
@@ -68,7 +68,7 @@ class EncoderMemory(torch.nn.Module):
         m = torch.unsqueeze(in_m, dim=1).float()    # add channel dim
         o = torch.unsqueeze(in_o, dim=1).float()    # add channel dim
 
-        x = self.conv1_f(in_f) + self.conv1_m(m) + self.conv1_o(o)
+        x = self.conv1(in_f) + self.conv1_m(m) + self.conv1_o(o)
         x = self.bn1(x)
         c1 = self.relu(x)    # 1/2, 64
         x = self.maxpool(c1)    # 1/4, 64
@@ -81,9 +81,8 @@ class EncoderMemory(torch.nn.Module):
 class EncoderQuery(torch.nn.Module):
     def __init__(self):
         super(EncoderQuery, self).__init__()
-        self.conv1 = torch.nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3, bias=False)
-
         resnet = torchvision.models.resnet50(pretrained=True)
+        self.conv1 = resnet.conv1
         self.bn1 = resnet.bn1
         self.relu = resnet.relu    # 1/2, 64
         self.maxpool = resnet.maxpool
