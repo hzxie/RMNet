@@ -9,3 +9,5 @@ torch >= 1.0.0
 torchvision
 tensorboardX==1.2
 tqdm
+
+git+https://github.com/zhanghang1989/ResNeSt

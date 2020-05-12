@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-08 21:39:06
+# @Last Modified time: 2020-05-12 14:36:02
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -14,9 +14,10 @@
 import math
 import torch
 import torch.nn.functional as F
-import torchvision.models
 
 import utils.helpers
+
+from resnest.torch import resnest50
 
 
 class ResBlock(torch.nn.Module):
@@ -52,7 +53,7 @@ class EncoderMemory(torch.nn.Module):
         self.conv1_m = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.conv1_o = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
-        resnet = torchvision.models.resnet50(pretrained=True)
+        resnet = resnest50(pretrained=True)
         self.conv1 = resnet.conv1
         self.bn1 = resnet.bn1
         self.relu = resnet.relu    # 1/2, 64
@@ -81,7 +82,7 @@ class EncoderMemory(torch.nn.Module):
 class EncoderQuery(torch.nn.Module):
     def __init__(self):
         super(EncoderQuery, self).__init__()
-        resnet = torchvision.models.resnet50(pretrained=True)
+        resnet = resnest50(pretrained=True)
         self.conv1 = resnet.conv1
         self.bn1 = resnet.bn1
         self.relu = resnet.relu    # 1/2, 64
