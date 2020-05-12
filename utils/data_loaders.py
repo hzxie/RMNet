@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-08 21:35:03
+# @Last Modified time: 2020-05-12 14:37:12
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -42,7 +42,6 @@ class Dataset(torch.utils.data.dataset.Dataset):
         video = self.file_list[idx]
         frames = []
         masks = []
-        depths = []
 
         frame_indexes = self._get_frame_indexes(video['n_frames'], self.n_max_frames)
         for fi in frame_indexes:
@@ -51,8 +50,6 @@ class Dataset(torch.utils.data.dataset.Dataset):
             mask = IO.get(video['masks'][fi])
             mask = mask.convert('P') if mask is not None else np.zeros(frame.shape[:-1])
             masks.append(np.array(mask))
-            depth = IO.get(video['depths'][fi])
-            depths.append(depth)
 
         # Number of objects in the masks
         mask_indexes = np.unique(masks[0])
@@ -62,9 +59,9 @@ class Dataset(torch.utils.data.dataset.Dataset):
 
         # Data preprocessing and augmentation
         if self.transforms is not None:
-            frames, depths, masks = self.transforms(frames, depths, masks)
+            frames, masks = self.transforms(frames, masks)
 
-        return video['name'], n_objects, frames, depths, masks
+        return video['name'], n_objects, frames, masks
 
     def _get_frame_indexes(self, n_frames, n_max_frames):
         if n_max_frames == 0:
