@@ -1,4 +1,126 @@
 {
+    "test-challenge": [
+        {
+            "n_frames": 85,
+            "name": "bike-trial"
+        },
+        {
+            "n_frames": 87,
+            "name": "boxing"
+        },
+        {
+            "n_frames": 72,
+            "name": "burnout"
+        },
+        {
+            "n_frames": 74,
+            "name": "choreography"
+        },
+        {
+            "n_frames": 92,
+            "name": "demolition"
+        },
+        {
+            "n_frames": 70,
+            "name": "dive-in"
+        },
+        {
+            "n_frames": 60,
+            "name": "dog-control"
+        },
+        {
+            "n_frames": 59,
+            "name": "dolphins"
+        },
+        {
+            "n_frames": 80,
+            "name": "e-bike"
+        },
+        {
+            "n_frames": 75,
+            "name": "grass-chopper"
+        },
+        {
+            "n_frames": 101,
+            "name": "hurdles"
+        },
+        {
+            "n_frames": 60,
+            "name": "inflatable"
+        },
+        {
+            "n_frames": 68,
+            "name": "juggle"
+        },
+        {
+            "n_frames": 83,
+            "name": "kart-turn"
+        },
+        {
+            "n_frames": 80,
+            "name": "kids-turning"
+        },
+        {
+            "n_frames": 96,
+            "name": "lions"
+        },
+        {
+            "n_frames": 60,
+            "name": "mbike-santa"
+        },
+        {
+            "n_frames": 87,
+            "name": "monkeys"
+        },
+        {
+            "n_frames": 35,
+            "name": "ocean-birds"
+        },
+        {
+            "n_frames": 73,
+            "name": "pole-vault"
+        },
+        {
+            "n_frames": 72,
+            "name": "running"
+        },
+        {
+            "n_frames": 68,
+            "name": "selfie"
+        },
+        {
+            "n_frames": 81,
+            "name": "skydive"
+        },
+        {
+            "n_frames": 83,
+            "name": "speed-skating"
+        },
+        {
+            "n_frames": 70,
+            "name": "swing-boy"
+        },
+        {
+            "n_frames": 56,
+            "name": "tackle"
+        },
+        {
+            "n_frames": 76,
+            "name": "turtle"
+        },
+        {
+            "n_frames": 52,
+            "name": "varanus-tree"
+        },
+        {
+            "n_frames": 66,
+            "name": "vietnam"
+        },
+        {
+            "n_frames": 59,
+            "name": "wings-turn"
+        }
+    ],
     "test": [
         {
             "n_frames": 71,
