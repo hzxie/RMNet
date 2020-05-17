@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-12 14:37:12
+# @Last Modified time: 2020-05-17 11:44:41
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -259,10 +259,6 @@ class DavisDataset(object):
                     cfg.DATASETS.DAVIS.IMG_FILE_PATH % (v['name'], i)
                     for i in range(v['n_frames'])
                 ],
-                'depths': [
-                    cfg.DATASETS.DAVIS.DEPTH_FILE_PATH % (v['name'], i)
-                    for i in range(v['n_frames'])
-                ],
                 'masks': [
                     cfg.DATASETS.DAVIS.ANNOTATION_FILE_PATH % (v['name'], i)
                     for i in range(v['n_frames'])
@@ -396,10 +392,6 @@ class YoutubeVosDataset(object):
                     cfg.DATASETS.YOUTUBE_VOS.IMG_FILE_PATH % (v, i)
                     for i in frame_indexes
                 ],
-                'depths': [
-                    cfg.DATASETS.YOUTUBE_VOS.DEPTH_FILE_PATH % (v, i)
-                    for i in frame_indexes
-                ],
                 'masks': [
                     cfg.DATASETS.YOUTUBE_VOS.ANNOTATION_FILE_PATH % (v, i)
                     for i in frame_indexes
@@ -500,9 +492,6 @@ class PascalVocDataset(ImageDataset):
                 'frames': [
                     cfg.DATASETS.PASCAL_VOC.IMG_FILE_PATH % i
                 ],
-                'depths': [
-                    cfg.DATASETS.PASCAL_VOC.DEPTH_FILE_PATH % i
-                ],
                 'masks': [
                     cfg.DATASETS.PASCAL_VOC.ANNOTATION_FILE_PATH % i
                 ]
@@ -527,9 +516,6 @@ class EcssdDataset(ImageDataset):
                 'n_frames': 1,
                 'frames': [
                     cfg.DATASETS.ECSSD.IMG_FILE_PATH % i
-                ],
-                'depths': [
-                    cfg.DATASETS.ECSSD.DEPTH_FILE_PATH % i
                 ],
                 'masks': [
                     cfg.DATASETS.ECSSD.ANNOTATION_FILE_PATH % i
@@ -558,9 +544,6 @@ class Msra10kDataset(ImageDataset):
                 'frames': [
                     cfg.DATASETS.MSRA10K.IMG_FILE_PATH % i
                 ],
-                'depths': [
-                    cfg.DATASETS.MSRA10K.DEPTH_FILE_PATH % i
-                ],
                 'masks': [
                     cfg.DATASETS.MSRA10K.ANNOTATION_FILE_PATH % i
                 ]
@@ -588,11 +571,35 @@ class MscocoDataset(ImageDataset):
                 'frames': [
                     cfg.DATASETS.MSCOCO.IMG_FILE_PATH % i
                 ],
-                'depths': [
-                    cfg.DATASETS.MSCOCO.DEPTH_FILE_PATH % i
-                ],
                 'masks': [
                     cfg.DATASETS.MSCOCO.ANNOTATION_FILE_PATH % i
+                ]
+            })  # yapf: disable
+
+        return file_list
+
+
+class Ade20kDataset(ImageDataset):
+    def __init__(self, cfg):
+        super(Ade20kDataset, self).__init__()
+
+        self.cfg = cfg
+        # Load the dataset indexing file
+        self.images = []
+        with open(cfg.DATASETS.ADE20K.INDEXING_FILE_PATH) as f:
+            self.images = f.read().split('\n')
+
+    def _get_file_list(self, cfg):
+        file_list = []
+        for i in self.images:
+            file_list.append({
+                'name': '%s/%s' % ('ADE20K', i),
+                'n_frames': 1,
+                'frames': [
+                    cfg.DATASETS.ADE20K.IMG_FILE_PATH % i
+                ],
+                'masks': [
+                    cfg.DATASETS.ADE20K.ANNOTATION_FILE_PATH % i
                 ]
             })  # yapf: disable
 
@@ -620,9 +627,6 @@ class DavisFrameDataset(ImageDataset):
                     'frames': [
                         cfg.DATASETS.DAVIS.IMG_FILE_PATH % (v['name'], i)
                     ],
-                    'depths': [
-                        cfg.DATASETS.DAVIS.DEPTH_FILE_PATH % (v['name'], i)
-                    ],
                     'masks': [
                         cfg.DATASETS.DAVIS.ANNOTATION_FILE_PATH % (v['name'], i)
                     ]
@@ -640,6 +644,7 @@ class DatasetCollector(object):
         'ECSSD': EcssdDataset,
         'MSRA10K': Msra10kDataset,
         'MSCOCO': MscocoDataset,
+        'ADE20K': Ade20kDataset
     }  # yapf: disable
 
     @classmethod

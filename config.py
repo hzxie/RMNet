@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-08 21:39:45
+# @Last Modified time: 2020-05-17 11:43:58
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -16,39 +16,37 @@ __C.DATASETS                                     = edict()
 __C.DATASETS.DAVIS                               = edict()
 __C.DATASETS.DAVIS.INDEXING_FILE_PATH            = './datasets/DAVIS.json'
 __C.DATASETS.DAVIS.IMG_FILE_PATH                 = '/home/SENSETIME/xiehaozhe/Datasets/DAVIS/JPEGImages/480p/%s/%05d.jpg'
-__C.DATASETS.DAVIS.DEPTH_FILE_PATH               = '/home/SENSETIME/xiehaozhe/Datasets/DAVIS/Depths/480p/%s/%05d.exr'
 __C.DATASETS.DAVIS.ANNOTATION_FILE_PATH          = '/home/SENSETIME/xiehaozhe/Datasets/DAVIS/Annotations/480p/%s/%05d.png'
 __C.DATASETS.YOUTUBE_VOS                         = edict()
 __C.DATASETS.YOUTUBE_VOS.INDEXING_FILE_PATH      = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/meta.json'
 __C.DATASETS.YOUTUBE_VOS.IMG_FILE_PATH           = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/JPEGImages/%s/%s.jpg'
-__C.DATASETS.YOUTUBE_VOS.DEPTH_FILE_PATH         = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/Depths/%s/%s.exr'
 __C.DATASETS.YOUTUBE_VOS.ANNOTATION_FILE_PATH    = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/Annotations/%s/%s.png'
 __C.DATASETS.PASCAL_VOC                          = edict()
 __C.DATASETS.PASCAL_VOC.INDEXING_FILE_PATH       = '/home/SENSETIME/xiehaozhe/Datasets/voc2012/trainval.txt'
 __C.DATASETS.PASCAL_VOC.IMG_FILE_PATH            = '/home/SENSETIME/xiehaozhe/Datasets/voc2012/images/%s.jpg'
-__C.DATASETS.PASCAL_VOC.DEPTHS_FILE_PATH         = '/home/SENSETIME/xiehaozhe/Datasets/voc2012/depths/%s.exr'
 __C.DATASETS.PASCAL_VOC.ANNOTATION_FILE_PATH     = '/home/SENSETIME/xiehaozhe/Datasets/voc2012/masks/%s.png'
 __C.DATASETS.ECSSD                               = edict()
 __C.DATASETS.ECSSD.N_IMAGES                      = 1000
 __C.DATASETS.ECSSD.IMG_FILE_PATH                 = '/home/SENSETIME/xiehaozhe/Datasets/ecssd/images/%s.jpg'
-__C.DATASETS.ECSSD.DEPTHS_FILE_PATH              = '/home/SENSETIME/xiehaozhe/Datasets/ecssd/depths/%s.exr'
 __C.DATASETS.ECSSD.ANNOTATION_FILE_PATH          = '/home/SENSETIME/xiehaozhe/Datasets/ecssd/masks/%s.png'
 __C.DATASETS.MSRA10K                             = edict()
 __C.DATASETS.MSRA10K.INDEXING_FILE_PATH          = './datasets/msra10k.txt'
 __C.DATASETS.MSRA10K.IMG_FILE_PATH               = '/home/SENSETIME/xiehaozhe/Datasets/msra10k/images/%s.jpg'
-__C.DATASETS.MSRA10K.DEPTHS_FILE_PATH            = '/home/SENSETIME/xiehaozhe/Datasets/msra10k/depths/%s.exr'
 __C.DATASETS.MSRA10K.ANNOTATION_FILE_PATH        = '/home/SENSETIME/xiehaozhe/Datasets/msra10k/masks/%s.png'
 __C.DATASETS.MSCOCO                              = edict()
 __C.DATASETS.MSCOCO.INDEXING_FILE_PATH           = './datasets/mscoco.txt'
 __C.DATASETS.MSCOCO.IMG_FILE_PATH                = '/home/SENSETIME/xiehaozhe/Datasets/coco2017/images/train2017/%s.jpg'
-__C.DATASETS.MSCOCO.DEPTHS_FILE_PATH             = '/home/SENSETIME/xiehaozhe/Datasets/coco2017/depths/%s.exr'
 __C.DATASETS.MSCOCO.ANNOTATION_FILE_PATH         = '/home/SENSETIME/xiehaozhe/Datasets/coco2017/masks/train2017/%s.png'
+__C.DATASETS.ADE20K                              = edict()
+__C.DATASETS.ADE20K.INDEXING_FILE_PATH           = './datasets/ade20k.txt'
+__C.DATASETS.ADE20K.IMG_FILE_PATH                = '/home/SENSETIME/xiehaozhe/Datasets/ADE20K_2016_07_26/images/training/%s.jpg'
+__C.DATASETS.ADE20K.ANNOTATION_FILE_PATH         = '/home/SENSETIME/xiehaozhe/Datasets/ADE20K_2016_07_26/images/training/%s_seg.png'
 
 #
 # Dataset
 #
 __C.DATASET                                      = edict()
-# Dataset Options: DAVIS, DAVIS_FRAMES, YOUTUBE_VOS, ECSSD, MSCOCO, PASCAL_VOC, MSRA10K
+# Dataset Options: DAVIS, DAVIS_FRAMES, YOUTUBE_VOS, ECSSD, MSCOCO, PASCAL_VOC, MSRA10K, ADE20K
 __C.DATASET.TRAIN_DATASET                        = ['ECSSD', 'PASCAL_VOC', 'MSRA10K']
 __C.DATASET.TRAIN_DATASET                        = ['YOUTUBE_VOS', 'DAVISx5']
 __C.DATASET.TEST_DATASET                         = 'DAVIS'
@@ -59,7 +57,6 @@ __C.DATASET.TEST_DATASET                         = 'DAVIS'
 __C.CONST                                        = edict()
 __C.CONST.N_WORKERS                              = 2
 __C.CONST.IGNORE_IDX                             = 255
-__C.CONST.TARGET_OBJECT_SIZE                     = 112
 __C.CONST.DATASET_MEAN                           = [0.485, 0.456, 0.406]
 __C.CONST.DATASET_STD                            = [0.229, 0.224, 0.225]
 __C.CONST.EXP_NAME                               = datetime.now().isoformat()
@@ -135,4 +132,4 @@ __C.TEST.MEMORIZE_EVERY                          = 5
 __C.TEST.TESTING_VIDEOS_INDEXES                  = [0, 2, 3, 8, 10, 18, 19, 24, 27, 29]
 __C.TEST.MAIN_METRIC_NAME                        = 'JF-Mean'
 __C.TEST.FLIP_LR                                 = True
-__C.TEST.FRAME_SCALES                            = [1.0, 1.25]
+__C.TEST.FRAME_SCALES                            = [1.0, 1.25, 1.5]
