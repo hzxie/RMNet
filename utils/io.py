@@ -2,14 +2,13 @@
 # @Author: Haozhe Xie
 # @Date:   2019-08-02 10:22:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-08 21:40:44
+# @Last Modified time: 2020-05-17 11:42:46
 # @Email:  cshzxie@gmail.com
 
 import io
 import numpy as np
 import os
 import sys
-import pyexr
 
 from PIL import Image
 
@@ -33,8 +32,6 @@ class IO:
         _, file_extension = os.path.splitext(file_path)
         if file_extension in ['.png', '.jpg']:
             return cls._read_img(file_path)
-        elif file_extension in ['.exr']:
-            return cls._read_exr(file_path)
         else:
             raise Exception('Unsupported file extension: %s' % file_extension)
 
@@ -49,7 +46,3 @@ class IO:
             img = Image.open(io.BytesIO(np.frombuffer(buf, np.uint8)))
 
         return img
-
-    @classmethod
-    def _read_exr(cls, file_path):
-        return pyexr.read(file_path)
