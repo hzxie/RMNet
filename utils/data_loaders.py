@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-17 11:44:41
+# @Last Modified time: 2020-05-19 09:52:35
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -113,8 +113,8 @@ class MultipleDatasets(torch.utils.data.dataset.Dataset):
         self.datasets = datasets
         # The begin and end indexes of datasets
         self.indexes = [0]
-        for d in datasets:
-            self.indexes.append(self.indexes[-1] + len(d))
+        for dataset, repeat_times in datasets:
+            self.indexes.append(self.indexes[-1] + int(len(dataset) * repeat_times))
 
     def __len__(self):
         return self.indexes[-1]
@@ -127,11 +127,15 @@ class MultipleDatasets(torch.utils.data.dataset.Dataset):
                 dataset_idx = i - 1
                 break
 
-        return self.datasets[dataset_idx][idx - self.indexes[dataset_idx]]
+        dataset, repeat_times = self.datasets[dataset_idx]
+        if repeat_times >= 1:
+            return dataset[(idx - self.indexes[dataset_idx]) % len(dataset)]
+        else:
+            return dataset[random.randint(0, len(dataset) - 1)]
 
     def set_frame_step(self, frame_step):
         self.frame_step = frame_step
-        for d in self.datasets:
+        for d, r in self.datasets:
             d.set_frame_step(frame_step)
 
 
@@ -655,11 +659,14 @@ class DatasetCollector(object):
             datasets = []
             for dn in dataset:
                 x_index = dn.rfind('x')
-                repeat_times = int(dn[x_index + 1:]) if x_index != -1 else 1
+                repeat_times = float(dn[x_index + 1:]) if x_index != -1 else 1
                 dn = dn[:x_index] if x_index != -1 else dn
 
-                for i in range(repeat_times):
-                    datasets.append(cls.DATASET_LOADER_MAPPING[dn](cfg).get_dataset(subset))
+                dataset_loader = cls.DATASET_LOADER_MAPPING[dn](cfg).get_dataset(subset)
+                if repeat_times >= 1:
+                    datasets.append((dataset_loader, int(repeat_times)))
+                else:
+                    datasets.append((dataset_loader, repeat_times))
 
             return MultipleDatasets(datasets)
         else:
