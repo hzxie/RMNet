@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-19 09:52:35
+# @Last Modified time: 2020-06-08 17:33:33
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -181,8 +181,8 @@ class DavisDataset(object):
             }, {
                 'callback': 'RandomCrop',
                 'parameters': {
-                    'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
-                    'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
+                    'height': cfg.TRAIN.AUGMENTATION.CROP_HSIZE,
+                    'width': cfg.TRAIN.AUGMENTATION.CROP_WSIZE,
                     'ignore_idx': cfg.CONST.IGNORE_IDX
                 }
             }, {
@@ -316,8 +316,8 @@ class YoutubeVosDataset(object):
             }, {
                 'callback': 'RandomCrop',
                 'parameters': {
-                    'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
-                    'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
+                    'height': cfg.TRAIN.AUGMENTATION.CROP_HSIZE,
+                    'width': cfg.TRAIN.AUGMENTATION.CROP_WSIZE,
                     'ignore_idx': cfg.CONST.IGNORE_IDX
                 }
             }, {
@@ -439,8 +439,8 @@ class ImageDataset(object):
         }, {
             'callback': 'RandomCrop',
             'parameters': {
-                'height': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
-                'width': cfg.TRAIN.AUGMENTATION.CROP_SIZE,
+                'height': cfg.TRAIN.AUGMENTATION.CROP_HSIZE,
+                'width': cfg.TRAIN.AUGMENTATION.CROP_HSIZE,  # Not a typo
                 'ignore_idx': cfg.CONST.IGNORE_IDX
             }
         }, {

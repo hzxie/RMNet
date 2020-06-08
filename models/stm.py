@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-12 14:36:02
+# @Last Modified time: 2020-06-08 17:24:42
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -14,6 +14,7 @@
 import math
 import torch
 import torch.nn.functional as F
+import torchvision.models.segmentation
 
 import utils.helpers
 
@@ -50,8 +51,24 @@ class ResBlock(torch.nn.Module):
 class EncoderMemory(torch.nn.Module):
     def __init__(self):
         super(EncoderMemory, self).__init__()
-        self.conv1_m = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        self.conv1_o = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.conv1_m = torch.nn.Sequential(
+            torch.nn.Conv2d(1, 32, kernel_size=3, stride=2, padding=1, bias=False),
+            torch.nn.BatchNorm2d(32),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=False),
+            torch.nn.BatchNorm2d(32),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(32, 64, kernel_size=3, padding=1, bias=False)
+        )
+        self.conv1_o = torch.nn.Sequential(
+            torch.nn.Conv2d(1, 32, kernel_size=3, stride=2, padding=1, bias=False),
+            torch.nn.BatchNorm2d(32),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=False),
+            torch.nn.BatchNorm2d(32),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(32, 64, kernel_size=3, padding=1, bias=False)
+        )
 
         resnet = resnest50(pretrained=True)
         self.conv1 = resnet.conv1
@@ -120,9 +137,10 @@ class Refine(torch.nn.Module):
 
 
 class Decoder(torch.nn.Module):
-    def __init__(self, mdim):
+    def __init__(self, mdim, atrous_rates):
         super(Decoder, self).__init__()
         self.convFM = torch.nn.Conv2d(1024, mdim, kernel_size=3, padding=1, stride=1)
+        self.aspp = torchvision.models.segmentation.deeplabv3.ASPP(mdim, atrous_rates, mdim)
         self.ResMM = ResBlock(mdim, mdim)
         self.RF3 = Refine(512, mdim)    # 1/8 -> 1/4
         self.RF2 = Refine(256, mdim)    # 1/4 -> 1
@@ -184,7 +202,7 @@ class STM(torch.nn.Module):
         self.kv_memory = KeyValue(1024, keydim=128, valdim=512)
         self.kv_query = KeyValue(1024, keydim=128, valdim=512)
         self.memory = Memory()
-        self.decoder = Decoder(256)
+        self.decoder = Decoder(256, [2, 4, 8])
 
     def pad_memory(self, mems, n_objects, K):
         pad_mems = []

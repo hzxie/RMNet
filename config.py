@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-17 11:43:58
+# @Last Modified time: 2020-06-08 17:40:28
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -47,7 +47,7 @@ __C.DATASETS.ADE20K.ANNOTATION_FILE_PATH         = '/home/SENSETIME/xiehaozhe/Da
 #
 __C.DATASET                                      = edict()
 # Dataset Options: DAVIS, DAVIS_FRAMES, YOUTUBE_VOS, ECSSD, MSCOCO, PASCAL_VOC, MSRA10K, ADE20K
-__C.DATASET.TRAIN_DATASET                        = ['ECSSD', 'PASCAL_VOC', 'MSRA10K']
+__C.DATASET.TRAIN_DATASET                        = ['ECSSD', 'PASCAL_VOC', 'MSRA10K', 'MSCOCO']
 __C.DATASET.TRAIN_DATASET                        = ['YOUTUBE_VOS', 'DAVISx5']
 __C.DATASET.TEST_DATASET                         = 'DAVIS'
 
@@ -106,7 +106,8 @@ __C.TRAIN.MEMORIZE_EVERY                         = 1
 __C.TRAIN.AUGMENTATION                           = edict()
 __C.TRAIN.AUGMENTATION.RESIZE_SIZE               = 480
 __C.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO         = True
-__C.TRAIN.AUGMENTATION.CROP_SIZE                 = 384
+__C.TRAIN.AUGMENTATION.CROP_HSIZE                = 384
+__C.TRAIN.AUGMENTATION.CROP_WSIZE                = 640
 __C.TRAIN.AUGMENTATION.COLOR_BRIGHTNESS          = (0.97, 1.03)
 __C.TRAIN.AUGMENTATION.COLOR_CONTRAST            = None
 __C.TRAIN.AUGMENTATION.COLOR_SATURATION          = None
