@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-07-09 10:17:51
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-07-12 22:05:45
+# @Last Modified time: 2020-07-13 20:01:08
 # @Email:  cshzxie@gmail.com
 
 import torch
@@ -13,7 +13,7 @@ class DistanceMatrixFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, matrix):
         dist_matrix.forward(matrix)
-        return matrix
+        return torch.sqrt(matrix)
 
 
 class DistanceMatrix(torch.nn.Module):

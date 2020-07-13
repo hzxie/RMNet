@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-06-08 17:40:28
+# @Last Modified time: 2020-07-13 20:38:42
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -107,7 +107,7 @@ __C.TRAIN.AUGMENTATION                           = edict()
 __C.TRAIN.AUGMENTATION.RESIZE_SIZE               = 480
 __C.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO         = True
 __C.TRAIN.AUGMENTATION.CROP_HSIZE                = 384
-__C.TRAIN.AUGMENTATION.CROP_WSIZE                = 640
+__C.TRAIN.AUGMENTATION.CROP_WSIZE                = 384
 __C.TRAIN.AUGMENTATION.COLOR_BRIGHTNESS          = (0.97, 1.03)
 __C.TRAIN.AUGMENTATION.COLOR_CONTRAST            = None
 __C.TRAIN.AUGMENTATION.COLOR_SATURATION          = None
