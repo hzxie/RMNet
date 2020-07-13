@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-07-13 14:33:11
+# @Last Modified time: 2020-07-13 20:40:20
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -14,11 +14,11 @@
 import math
 import torch
 import torch.nn.functional as F
-import torchvision.models.segmentation
+import torchvision.models
 
 import utils.helpers
 
-from resnest.torch import resnest50
+from extensions.dist_matrix import DistanceMatrix
 
 
 class ResBlock(torch.nn.Module):
@@ -51,26 +51,10 @@ class ResBlock(torch.nn.Module):
 class EncoderMemory(torch.nn.Module):
     def __init__(self):
         super(EncoderMemory, self).__init__()
-        self.conv1_m = torch.nn.Sequential(
-            torch.nn.Conv2d(1, 32, kernel_size=3, stride=2, padding=1, bias=False),
-            torch.nn.BatchNorm2d(32),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=False),
-            torch.nn.BatchNorm2d(32),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(32, 64, kernel_size=3, padding=1, bias=False)
-        )
-        self.conv1_o = torch.nn.Sequential(
-            torch.nn.Conv2d(1, 32, kernel_size=3, stride=2, padding=1, bias=False),
-            torch.nn.BatchNorm2d(32),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=False),
-            torch.nn.BatchNorm2d(32),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(32, 64, kernel_size=3, padding=1, bias=False)
-        )
+        self.conv1_m = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.conv1_o = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
-        resnet = resnest50(pretrained=True)
+        resnet = torchvision.models.resnet50(pretrained=True)
         self.conv1 = resnet.conv1
         self.bn1 = resnet.bn1
         self.relu = resnet.relu    # 1/2, 64
@@ -99,7 +83,7 @@ class EncoderMemory(torch.nn.Module):
 class EncoderQuery(torch.nn.Module):
     def __init__(self):
         super(EncoderQuery, self).__init__()
-        resnet = resnest50(pretrained=True)
+        resnet = torchvision.models.resnet50(pretrained=True)
         self.conv1 = resnet.conv1
         self.bn1 = resnet.bn1
         self.relu = resnet.relu    # 1/2, 64
@@ -140,7 +124,6 @@ class Decoder(torch.nn.Module):
     def __init__(self, mdim, atrous_rates):
         super(Decoder, self).__init__()
         self.convFM = torch.nn.Conv2d(1024, mdim, kernel_size=3, padding=1, stride=1)
-        self.aspp = torchvision.models.segmentation.deeplabv3.ASPP(mdim, atrous_rates, mdim)
         self.ResMM = ResBlock(mdim, mdim)
         self.RF3 = Refine(512, mdim)    # 1/8 -> 1/4
         self.RF2 = Refine(256, mdim)    # 1/4 -> 1
@@ -160,27 +143,31 @@ class Decoder(torch.nn.Module):
 class Memory(torch.nn.Module):
     def __init__(self):
         super(Memory, self).__init__()
+        self.dist_matrix = DistanceMatrix()
 
-    def forward(self, m_in, m_out, q_in, q_out):    # m_in: o,c,t,h,w
-        B, D_e, T, H, W = m_in.size()
-        _, D_o, _, _, _ = m_out.size()
+    def forward(self, m_key, m_val, q_key, q_val):    # m_key: o,c,t,h,w
+        B, D_e, T, H, W = m_key.size()
+        _, D_o, _, _, _ = m_val.size()
 
-        mi = m_in.view(B, D_e, T * H * W)
+        mi = m_key.view(B, D_e, T * H * W)
         mi = torch.transpose(mi, 1, 2)    # b, THW, emb
 
-        qi = q_in.view(B, D_e, H * W)    # b, emb, HW
+        qi = q_key.view(B, D_e, H * W)    # b, emb, HW
+
+        dist_mtx = self.dist_matrix(H, W)
+        dist_mtx = dist_mtx.unsqueeze(dim=0).unsqueeze(dim=0).repeat(B, T, 1, 1, 1, 1).view(B, T * H * W, H * W)
 
         p = torch.bmm(mi, qi)    # b, THW, HW
-        p = p / math.sqrt(D_e)
+        p = p / dist_mtx / math.sqrt(D_e)
         p = F.softmax(p, dim=1)    # b, THW, HW
 
-        mo = m_out.view(B, D_o, T * H * W)
+        mo = m_val.view(B, D_o, T * H * W)
         mem = torch.bmm(mo, p)    # Weighted-sum B, D_o, HW
         mem = mem.view(B, D_o, H, W)
 
-        mem_out = torch.cat([mem, q_out], dim=1)
+        mem_val = torch.cat([mem, q_val], dim=1)
 
-        return mem_out, p
+        return mem_val, p
 
 
 class KeyValue(torch.nn.Module):
