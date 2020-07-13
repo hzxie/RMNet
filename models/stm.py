@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-06-08 17:24:42
+# @Last Modified time: 2020-07-13 14:33:11
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -317,10 +317,10 @@ class STM(torch.nn.Module):
         }
         for i in range(B):
             # expand to ---  no, c, h, w
-            _k4e, _v4e = k4[i].expand(n_objects[i], -1, -1,
-                                      -1), v4[i].expand(n_objects[i], -1, -1, -1)
-            _r3e, _r2e = r3[i].expand(n_objects[i], -1, -1,
-                                      -1), r2[i].expand(n_objects[i], -1, -1, -1)
+            _k4e = k4[i].expand(n_objects[i], -1, -1, -1)
+            _v4e = v4[i].expand(n_objects[i], -1, -1, -1)
+            _r3e = r3[i].expand(n_objects[i], -1, -1, -1)
+            _r2e = r2[i].expand(n_objects[i], -1, -1, -1)
             _key = keys[i, 1:n_objects[i] + 1]
             _value = values[i, 1:n_objects[i] + 1]
             # print(_k4e.shape) # torch.Size([n_objects, 128, 30, 57])
