@@ -154,7 +154,7 @@ class Memory(torch.nn.Module):
 
         qi = q_key.view(B, D_e, H * W)    # b, emb, HW
 
-        dist_mtx = self.dist_matrix(H, W)
+        dist_mtx = self.dist_matrix(H, W) + 1
         dist_mtx = dist_mtx.unsqueeze(dim=0).unsqueeze(dim=0).repeat(B, T, 1, 1, 1, 1).view(B, T * H * W, H * W)
 
         p = torch.bmm(mi, qi)    # b, THW, HW
