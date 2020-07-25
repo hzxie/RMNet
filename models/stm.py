@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-07-13 20:40:20
+# @Last Modified time: 2020-07-25 13:28:30
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -155,11 +155,14 @@ class Memory(torch.nn.Module):
         qi = q_key.view(B, D_e, H * W)    # b, emb, HW
 
         dist_mtx = self.dist_matrix(H, W)
+        dist_mtx = torch.exp(-dist_mtx)
         dist_mtx = dist_mtx.unsqueeze(dim=0).unsqueeze(dim=0).repeat(B, T, 1, 1, 1, 1).view(B, T * H * W, H * W)
+        dist_mtx = F.softmax(dist_mtx, dim=1)    # b, THW, HW
 
         p = torch.bmm(mi, qi)    # b, THW, HW
-        p = p / dist_mtx / math.sqrt(D_e)
+        p = p / math.sqrt(D_e)
         p = F.softmax(p, dim=1)    # b, THW, HW
+        p = p * dist_mtx
 
         mo = m_val.view(B, D_o, T * H * W)
         mem = torch.bmm(mo, p)    # Weighted-sum B, D_o, HW
