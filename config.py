@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-07-13 20:38:42
+# @Last Modified time: 2020-08-04 20:23:24
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -17,10 +17,12 @@ __C.DATASETS.DAVIS                               = edict()
 __C.DATASETS.DAVIS.INDEXING_FILE_PATH            = './datasets/DAVIS.json'
 __C.DATASETS.DAVIS.IMG_FILE_PATH                 = '/home/SENSETIME/xiehaozhe/Datasets/DAVIS/JPEGImages/480p/%s/%05d.jpg'
 __C.DATASETS.DAVIS.ANNOTATION_FILE_PATH          = '/home/SENSETIME/xiehaozhe/Datasets/DAVIS/Annotations/480p/%s/%05d.png'
+__C.DATASETS.DAVIS.OPTICAL_FLOW_FILE_PATH        = '/home/SENSETIME/xiehaozhe/Datasets/DAVIS/OpticalFlows/480p/%s/%05d.flo'
 __C.DATASETS.YOUTUBE_VOS                         = edict()
 __C.DATASETS.YOUTUBE_VOS.INDEXING_FILE_PATH      = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/meta.json'
 __C.DATASETS.YOUTUBE_VOS.IMG_FILE_PATH           = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/JPEGImages/%s/%s.jpg'
 __C.DATASETS.YOUTUBE_VOS.ANNOTATION_FILE_PATH    = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/Annotations/%s/%s.png'
+__C.DATASETS.YOUTUBE_VOS.OPTICAL_FLOW_FILE_PATH  = '/home/SENSETIME/xiehaozhe/Datasets/ytb_train/OpticalFlows/%s/%s.flo'
 __C.DATASETS.PASCAL_VOC                          = edict()
 __C.DATASETS.PASCAL_VOC.INDEXING_FILE_PATH       = '/home/SENSETIME/xiehaozhe/Datasets/voc2012/trainval.txt'
 __C.DATASETS.PASCAL_VOC.IMG_FILE_PATH            = '/home/SENSETIME/xiehaozhe/Datasets/voc2012/images/%s.jpg'
