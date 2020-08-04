@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2019-08-02 10:22:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-17 11:42:46
+# @Last Modified time: 2020-08-04 21:25:00
 # @Email:  cshzxie@gmail.com
 
 import io
@@ -32,6 +32,8 @@ class IO:
         _, file_extension = os.path.splitext(file_path)
         if file_extension in ['.png', '.jpg']:
             return cls._read_img(file_path)
+        elif file_extension in ['.flo']:
+            return cls._read_flo(file_path)
         else:
             raise Exception('Unsupported file extension: %s' % file_extension)
 
@@ -46,3 +48,21 @@ class IO:
             img = Image.open(io.BytesIO(np.frombuffer(buf, np.uint8)))
 
         return img
+
+    @classmethod
+    def _read_flo(cls, file_path):
+        if mc_client is None:
+            with open(filename, "rb") as f:
+                buf = f.read()
+        else:
+            pyvector = mc.pyvector()
+            mc_client.Get(file_path, pyvector)
+            buf = mc.ConvertBuffer(pyvector).tobytes()
+
+        if not buf[:4] == b'PIEH':
+            raise Exception('Invalid .flo file format.')
+
+        w = int.from_bytes(buf[4:8], byteorder='little')
+        h = int.from_bytes(buf[8:12], byteorder='little')
+        flow = np.frombuffer(buf[12:], np.float32).reshape(h, w, 2)
+        return flow
