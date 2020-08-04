@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-06-08 17:33:33
+# @Last Modified time: 2020-08-04 20:33:16
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -42,6 +42,7 @@ class Dataset(torch.utils.data.dataset.Dataset):
         video = self.file_list[idx]
         frames = []
         masks = []
+        optical_flows = []
 
         frame_indexes = self._get_frame_indexes(video['n_frames'], self.n_max_frames)
         for fi in frame_indexes:
@@ -50,6 +51,9 @@ class Dataset(torch.utils.data.dataset.Dataset):
             mask = IO.get(video['masks'][fi])
             mask = mask.convert('P') if mask is not None else np.zeros(frame.shape[:-1])
             masks.append(np.array(mask))
+            optical_flow = IO.get(video['optical_flow'][fi])
+            optical_flow = optical_flow if optical_flow is not None else np.zeros(frame.shape[:-1])
+            optical_flows.append(np.array(optical_flow))
 
         # Number of objects in the masks
         mask_indexes = np.unique(masks[0])
@@ -59,9 +63,9 @@ class Dataset(torch.utils.data.dataset.Dataset):
 
         # Data preprocessing and augmentation
         if self.transforms is not None:
-            frames, masks = self.transforms(frames, masks)
+            frames, masks, optical_flows = self.transforms(frames, masks, optical_flows)
 
-        return video['name'], n_objects, frames, masks
+        return video['name'], n_objects, frames, masks, optical_flows
 
     def _get_frame_indexes(self, n_frames, n_max_frames):
         if n_max_frames == 0:
@@ -266,6 +270,10 @@ class DavisDataset(object):
                 'masks': [
                     cfg.DATASETS.DAVIS.ANNOTATION_FILE_PATH % (v['name'], i)
                     for i in range(v['n_frames'])
+                ],
+                'optical_flow': [
+                    cfg.DATASETS.DAVIS.OPTICAL_FLOW_FILE_PATH % (v['name'], i)
+                    for i in range(v['n_frames'])
                 ]
             })  # yapf: disable
 
@@ -399,6 +407,10 @@ class YoutubeVosDataset(object):
                 'masks': [
                     cfg.DATASETS.YOUTUBE_VOS.ANNOTATION_FILE_PATH % (v, i)
                     for i in frame_indexes
+                ],
+                'optical_flow': [
+                    cfg.DATASETS.YOUTUBE_VOS.OPTICAL_FLOW_FILE_PATH % (v, i)
+                    for i in frame_indexes
                 ]
             })  # yapf: disable
 
@@ -420,61 +432,71 @@ class ImageDataset(object):
             })
 
     def _get_transforms(self, cfg):
-        return utils.data_transforms.Compose([{
-            'callback': 'Resize',
-            'parameters': {
-                'size': cfg.TRAIN.AUGMENTATION.RESIZE_SIZE,
-                'keep_ratio': cfg.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO
+        return utils.data_transforms.Compose([
+            {
+                'callback': 'Resize',
+                'parameters': {
+                    'size': cfg.TRAIN.AUGMENTATION.RESIZE_SIZE,
+                    'keep_ratio': cfg.TRAIN.AUGMENTATION.RESIZE_KEEP_RATIO
+                }
+            },
+            {
+                'callback': 'RandomAffine',
+                'parameters': {
+                    'degrees': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_DEGREES,
+                    'translate': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_TRANSLATE,
+                    'scale': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_SCALE,
+                    'shears': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_SHEARS,
+                    'frame_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_FILL_COLOR,
+                    'mask_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_MASK_FILL_COLOR
+                }
+            },
+            {
+                'callback': 'RandomCrop',
+                'parameters': {
+                    'height': cfg.TRAIN.AUGMENTATION.CROP_HSIZE,
+                    'width': cfg.TRAIN.AUGMENTATION.CROP_HSIZE,    # Not a typo
+                    'ignore_idx': cfg.CONST.IGNORE_IDX
+                }
+            },
+            {
+                'callback': 'ReorganizeObjectID',
+                'parameters': {
+                    'ignore_idx': cfg.CONST.IGNORE_IDX
+                }
+            },
+            {
+                'callback': 'ToOneHot',
+                'parameters': {
+                    'shuffle': True,
+                    'n_objects': cfg.TRAIN.N_MAX_OBJECTS
+                }
+            },
+            {
+                'callback': 'ColorJitter',
+                'parameters': {
+                    'brightness': cfg.TRAIN.AUGMENTATION.COLOR_BRIGHTNESS,
+                    'contrast': cfg.TRAIN.AUGMENTATION.COLOR_CONTRAST,
+                    'saturation': cfg.TRAIN.AUGMENTATION.COLOR_SATURATION,
+                    'hue': cfg.TRAIN.AUGMENTATION.COLOR_HUE
+                }
+            },
+            {
+                'callback': 'Normalize',
+                'parameters': {
+                    'mean': cfg.CONST.DATASET_MEAN,
+                    'std': cfg.CONST.DATASET_STD
+                }
+            },
+            {
+                'callback': 'RandomPermuteRGB',
+                'parameters': None
+            },
+            {
+                'callback': 'ToTensor',
+                'parameters': None
             }
-        }, {
-            'callback': 'RandomAffine',
-            'parameters': {
-                'degrees': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_DEGREES,
-                'translate': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_TRANSLATE,
-                'scale': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_SCALE,
-                'shears': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_SHEARS,
-                'frame_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_FILL_COLOR,
-                'mask_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_MASK_FILL_COLOR
-            }
-        }, {
-            'callback': 'RandomCrop',
-            'parameters': {
-                'height': cfg.TRAIN.AUGMENTATION.CROP_HSIZE,
-                'width': cfg.TRAIN.AUGMENTATION.CROP_HSIZE,  # Not a typo
-                'ignore_idx': cfg.CONST.IGNORE_IDX
-            }
-        }, {
-            'callback': 'ReorganizeObjectID',
-            'parameters': {
-                'ignore_idx': cfg.CONST.IGNORE_IDX
-            }
-        }, {
-            'callback': 'ToOneHot',
-            'parameters': {
-                'shuffle': True,
-                'n_objects': cfg.TRAIN.N_MAX_OBJECTS
-            }
-        }, {
-            'callback': 'ColorJitter',
-            'parameters': {
-                'brightness': cfg.TRAIN.AUGMENTATION.COLOR_BRIGHTNESS,
-                'contrast': cfg.TRAIN.AUGMENTATION.COLOR_CONTRAST,
-                'saturation': cfg.TRAIN.AUGMENTATION.COLOR_SATURATION,
-                'hue': cfg.TRAIN.AUGMENTATION.COLOR_HUE
-            }
-        }, {
-            'callback': 'Normalize',
-            'parameters': {
-                'mean': cfg.CONST.DATASET_MEAN,
-                'std': cfg.CONST.DATASET_STD
-            }
-        }, {
-            'callback': 'RandomPermuteRGB',
-            'parameters': None
-        }, {
-            'callback': 'ToTensor',
-            'parameters': None
-        }])
+        ])
 
 
 class PascalVocDataset(ImageDataset):

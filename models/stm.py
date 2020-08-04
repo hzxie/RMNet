@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-07-25 13:31:02
+# @Last Modified time: 2020-08-04 20:12:32
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -17,8 +17,6 @@ import torch.nn.functional as F
 import torchvision.models
 
 import utils.helpers
-
-from extensions.dist_matrix import DistanceMatrix
 
 
 class ResBlock(torch.nn.Module):
@@ -140,10 +138,9 @@ class Decoder(torch.nn.Module):
         return p
 
 
-class Memory(torch.nn.Module):
+class MemoryReader(torch.nn.Module):
     def __init__(self):
-        super(Memory, self).__init__()
-        self.dist_matrix = DistanceMatrix()
+        super(MemoryReader, self).__init__()
 
     def forward(self, m_key, m_val, q_key, q_val):    # m_key: o,c,t,h,w
         B, D_e, T, H, W = m_key.size()
@@ -154,15 +151,9 @@ class Memory(torch.nn.Module):
 
         qi = q_key.view(B, D_e, H * W)    # b, emb, HW
 
-        dist_mtx = self.dist_matrix(H, W)
-        dist_mtx = torch.exp(-dist_mtx)
-        dist_mtx = dist_mtx.unsqueeze(dim=0).unsqueeze(dim=0).repeat(B, T, 1, 1, 1, 1).view(B, T * H * W, H * W)
-        dist_mtx = F.softmax(dist_mtx, dim=1)    # b, THW, HW
-
         p = torch.bmm(mi, qi)    # b, THW, HW
         p = p / math.sqrt(D_e)
         p = F.softmax(p, dim=1)    # b, THW, HW
-        p = p * dist_mtx
 
         mo = m_val.view(B, D_o, T * H * W)
         mem = torch.bmm(mo, p)    # Weighted-sum B, D_o, HW
@@ -191,7 +182,7 @@ class STM(torch.nn.Module):
         self.encoder_query = EncoderQuery()
         self.kv_memory = KeyValue(1024, keydim=128, valdim=512)
         self.kv_query = KeyValue(1024, keydim=128, valdim=512)
-        self.memory = Memory()
+        self.memory = MemoryReader()
         self.decoder = Decoder(256, [2, 4, 8])
 
     def pad_memory(self, mems, n_objects, K):
