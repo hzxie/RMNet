@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-04 20:31:21
+# @Last Modified time: 2020-08-05 11:32:54
 # @Email:  cshzxie@gmail.com
 
 import math
@@ -32,7 +32,7 @@ class Compose(object):
     def __call__(self, frames, masks, optical_flows):
         for tr in self.transformers:
             transform = tr['callback']
-            frames, masks = transform(frames, masks, optical_flows)
+            frames, masks, optical_flows = transform(frames, masks, optical_flows)
 
         return frames, masks, optical_flows
 
