@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:00:36
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-06 10:45:29
+# @Last Modified time: 2020-08-05 11:37:20
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -79,6 +79,6 @@ if __name__ == '__main__':
     if sys.version_info < (3, 0):
         raise Exception("Please use Python 3.x")
 
-    logging.basicConfig(format='[%(levelname)s] %(asctime)s %(message)s', level=logging.INFO)
+    logging.basicConfig(format='[%(levelname)s] %(asctime)s %(message)s')
     logging.getLogger().setLevel(logging.INFO)
     main()

@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-04 20:33:16
+# @Last Modified time: 2020-08-05 11:31:24
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -52,7 +52,8 @@ class Dataset(torch.utils.data.dataset.Dataset):
             mask = mask.convert('P') if mask is not None else np.zeros(frame.shape[:-1])
             masks.append(np.array(mask))
             optical_flow = IO.get(video['optical_flow'][fi])
-            optical_flow = optical_flow if optical_flow is not None else np.zeros(frame.shape[:-1])
+            optical_flow = optical_flow if optical_flow is not None else np.zeros(
+                frame.shape[:-1] + (2, ))
             optical_flows.append(np.array(optical_flow))
 
         # Number of objects in the masks

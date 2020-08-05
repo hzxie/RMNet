@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2019-08-02 10:22:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-04 21:25:00
+# @Last Modified time: 2020-08-05 11:22:57
 # @Email:  cshzxie@gmail.com
 
 import io
@@ -52,7 +52,7 @@ class IO:
     @classmethod
     def _read_flo(cls, file_path):
         if mc_client is None:
-            with open(filename, "rb") as f:
+            with open(file_path, "rb") as f:
                 buf = f.read()
         else:
             pyvector = mc.pyvector()
@@ -64,5 +64,5 @@ class IO:
 
         w = int.from_bytes(buf[4:8], byteorder='little')
         h = int.from_bytes(buf[8:12], byteorder='little')
-        flow = np.frombuffer(buf[12:], np.float32).reshape(h, w, 2)
+        flow = np.frombuffer(buf[12:], dtype=np.float32).reshape(h, w, 2)
         return flow

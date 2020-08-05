@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-05-12 14:37:41
+# @Last Modified time: 2020-08-05 10:10:32
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -58,7 +58,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
     test_losses = AverageMeter()
     test_metrics = AverageMeter(Metrics.names())
 
-    for idx, (video_name, n_objects, frames, masks) in enumerate(test_data_loader):
+    for idx, (video_name, n_objects, frames, masks, optical_flows) in enumerate(test_data_loader):
         # Test only selected videos to accelerate the testing process
         if not epoch_idx == -1 and idx not in cfg.TEST.TESTING_VIDEOS_INDEXES:
             continue
@@ -68,6 +68,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
             if torch.cuda.device_count() > 1:
                 frames = utils.helpers.var_or_cuda(frames)
                 masks = utils.helpers.var_or_cuda(masks)
+                optical_flows = utils.helpers.var_or_cuda(optical_flows)
 
             # Fix bugs: OOM error for large videos
             try:

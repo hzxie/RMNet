@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-07-28 21:06:32
+# @Last Modified time: 2020-08-05 11:43:44
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -122,11 +122,13 @@ def train_net(cfg):
 
         batch_end_time = time()
         n_batches = len(train_data_loader)
-        for batch_idx, (video_name, n_objects, frames, masks) in enumerate(train_data_loader):
+        for batch_idx, (video_name, n_objects, frames, masks,
+                        optical_flows) in enumerate(train_data_loader):
             data_time.update(time() - batch_end_time)
             try:
                 frames = utils.helpers.var_or_cuda(frames)
                 masks = utils.helpers.var_or_cuda(masks)
+                optical_flows = utils.helpers.var_or_cuda(optical_flows)
 
                 est_probs = stm(frames, masks, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
                 est_probs = utils.helpers.var_or_cuda(est_probs[:, 1:]).permute(0, 2, 1, 3, 4)
