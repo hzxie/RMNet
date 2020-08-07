@@ -1,0 +1,72 @@
+/**
+ * @Author: Haozhe Xie
+ * @Date:   2020-08-07 10:37:26
+ * @Last Modified by:   Haozhe Xie
+ * @Last Modified time: 2020-08-07 21:16:12
+ * @Email:  cshzxie@gmail.com
+ *
+ * References:
+ * - https://stackoverflow.com/questions/34571945/migrating-to-numpy-api-1-7
+ * - http://pageperso.lif.univ-mrs.fr/~francois.denis/IAAM1/numpy-html-1.14.0/reference/c-api.array.html
+ */
+
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+
+#include <Python.h>
+#include <iostream>
+#include <numpy/arrayobject.h>
+
+static PyObject *updateOpticalFlow(PyObject *self, PyObject *args) {
+  PyObject *arrays[3];
+  if (!PyArg_ParseTuple(args, "OOO", &arrays[0], &arrays[1], &arrays[2])) {
+    return NULL;
+  }
+
+  PyArrayObject *opticalFlowArrObj =
+      reinterpret_cast<PyArrayObject *>(arrays[0]);
+  PyArrayObject *trMatrix1ArrObj = reinterpret_cast<PyArrayObject *>(arrays[1]);
+  PyArrayObject *trMatrix2ArrObj = reinterpret_cast<PyArrayObject *>(arrays[2]);
+
+  float *opticalFlow = static_cast<float *>(PyArray_DATA(opticalFlowArrObj));
+  float *trMatrix1 = static_cast<float *>(PyArray_DATA(trMatrix1ArrObj));
+  float *trMatrix2 = static_cast<float *>(PyArray_DATA(trMatrix2ArrObj));
+
+  npy_intp *opticalFlowShape = PyArray_DIMS(opticalFlowArrObj);
+  int height = opticalFlowShape[0], width = opticalFlowShape[1];
+
+  for (size_t i = 0; i < height; ++i) {
+    for (size_t j = 0; j < width; ++j) {
+      // NOTE: i -> Y; j -> X
+      size_t ofArrayIndex = (i * width + j) * 2;
+      float srcX = trMatrix1[0] * j + trMatrix1[1] * j + trMatrix1[2];
+      float srcY = trMatrix1[3] * i + trMatrix1[4] * i + trMatrix1[5];
+
+      float dstX = j + opticalFlow[ofArrayIndex];
+      float dstY = i + opticalFlow[ofArrayIndex + 1];
+      dstX = trMatrix2[0] * dstX + trMatrix2[1] * dstX + trMatrix2[2];
+      dstY = trMatrix2[3] * dstY + trMatrix2[4] * dstY + trMatrix2[5];
+
+      opticalFlow[ofArrayIndex] = dstX - srcX;
+      opticalFlow[ofArrayIndex + 1] = dstY - srcY;
+    }
+  }
+
+  // TODO: Solve the segmentation fault problem caused by PyArray_Return
+  // return PyArray_Return(opticalFlowArrObj);
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+static PyMethodDef flowAffineTransformationMethods[] = {
+    {"update_optical_flow", updateOpticalFlow, METH_VARARGS,
+     "Update the value of optical flow for affine transformation"},
+    {NULL, NULL, 0, NULL}};
+
+static struct PyModuleDef cModPyDem = {
+    PyModuleDef_HEAD_INIT, "flow_affine_transformation",
+    "Update the value of optical flow for affine transformation", -1,
+    flowAffineTransformationMethods};
+
+PyMODINIT_FUNC PyInit_flow_affine_transformation(void) {
+  return PyModule_Create(&cModPyDem);
+}
