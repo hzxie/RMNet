@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-08 17:07:05
+# @Last Modified time: 2020-08-08 17:48:11
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -164,19 +164,28 @@ def train_net(cfg):
         metrics = test_net(cfg, epoch_idx, val_data_loader, val_writer, stm)
 
         # Save ckeckpoints
-        if epoch_idx % cfg.TRAIN.SAVE_FREQ == 0 or metrics.better_than(best_metrics):
-            file_name = 'ckpt-best.pth' if metrics.better_than(
-                best_metrics) else 'ckpt-epoch-%03d.pth' % epoch_idx
-            output_path = os.path.join(cfg.DIR.CHECKPOINTS, file_name)
+        metric_threshold = Metrics(
+            cfg.TEST.MAIN_METRIC_NAME,
+            [cfg.TRAIN.CKPT_SAVE_THRESHOLD for i in range(len(Metrics.names()))])
+
+        if epoch_idx % cfg.TRAIN.CKPT_SAVE_FREQ == 0 and metrics.better_than(metric_threshold):
+            output_path = os.path.join(cfg.DIR.CHECKPOINTS, 'ckpt-epoch-%03d.pth' % epoch_idx)
             torch.save({
                 'epoch_index': epoch_idx,
                 'best_metrics': metrics.state_dict(),
                 'stm': stm.state_dict()
             }, output_path)  # yapf: disable
-
             logging.info('Saved checkpoint to %s ...' % output_path)
-            if metrics.better_than(best_metrics):
-                best_metrics = metrics
+
+        if metrics.better_than(best_metrics):
+            output_path = os.path.join(cfg.DIR.CHECKPOINTS, 'ckpt-best.pth')
+            best_metrics = metrics
+            torch.save({
+                'epoch_index': epoch_idx,
+                'best_metrics': metrics.state_dict(),
+                'stm': stm.state_dict()
+            }, output_path)  # yapf: disable
+            logging.info('Saved checkpoint to %s ...' % output_path)
 
     train_writer.close()
     val_writer.close()
