@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-08 10:51:00
+# @Last Modified time: 2020-08-08 11:42:06
 # @Email:  cshzxie@gmail.com
 
 import cv2
@@ -478,8 +478,9 @@ class RandomAffine(object):
                 continue
 
             # Update the optical flow values
-            flow_affine_transformation.update_optical_flow(of, tr_matices[idx], tr_matices[idx + 1])
-            optical_flows[idx] = self._affine(of,
+            optical_flows[idx] = flow_affine_transformation.update_optical_flow(
+                of, tr_matices[idx], tr_matices[idx + 1])
+            optical_flows[idx] = self._affine(optical_flows[idx],
                                               tr_matices[idx],
                                               fillcolor=tuple(self.optical_flow_fill_color))
 

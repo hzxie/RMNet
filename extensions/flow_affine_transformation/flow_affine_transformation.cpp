@@ -2,20 +2,38 @@
  * @Author: Haozhe Xie
  * @Date:   2020-08-07 10:37:26
  * @Last Modified by:   Haozhe Xie
- * @Last Modified time: 2020-08-07 22:20:29
+ * @Last Modified time: 2020-08-08 11:53:40
  * @Email:  cshzxie@gmail.com
  *
  * References:
  * - https://stackoverflow.com/questions/34571945/migrating-to-numpy-api-1-7
+ * - https://stackoverflow.com/a/47027598/1841143
  * - http://pageperso.lif.univ-mrs.fr/~francois.denis/IAAM1/numpy-html-1.14.0/reference/c-api.array.html
  */
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
 #include <Python.h>
-#include <iostream>
 #include <numpy/arrayobject.h>
 
+// Initialize Numpy and make sure that be called only once.
+// Without initialize, both PyArray_SimpleNew and PyArray_Return cause
+// segmentation fault error.
+int initNumpy() {
+  import_array();
+  return 1;
+}
+const static int NUMPY_INITIALIZED = initNumpy();
+
+/**
+ * Update the optical flow after the affine transformation applied to two
+ * frames.
+ *
+ * @param  self unused dummy var
+ * @param  args array[3]: optical flow, transformation matrix 1, transformation
+ * matrix 2
+ * @return array: the new optical flow after affine transformation
+ */
 static PyObject *updateOpticalFlow(PyObject *self, PyObject *args) {
   PyObject *arrays[3];
   if (!PyArg_ParseTuple(args, "OOO", &arrays[0], &arrays[1], &arrays[2])) {
@@ -34,6 +52,12 @@ static PyObject *updateOpticalFlow(PyObject *self, PyObject *args) {
   npy_intp *opticalFlowShape = PyArray_SHAPE(opticalFlowArrObj);
   size_t height = opticalFlowShape[0], width = opticalFlowShape[1];
 
+  PyArrayObject *newOpticalFlowArrObj =
+      reinterpret_cast<PyArrayObject *>(PyArray_SimpleNew(
+          PyArray_NDIM(opticalFlowArrObj), opticalFlowShape, NPY_FLOAT32));
+  float *newOpticalFlow =
+      static_cast<float *>(PyArray_DATA(newOpticalFlowArrObj));
+
   for (size_t i = 0; i < height; ++i) {
     for (size_t j = 0; j < width; ++j) {
       // NOTE: i -> Y; j -> X
@@ -46,14 +70,11 @@ static PyObject *updateOpticalFlow(PyObject *self, PyObject *args) {
       dstX = trMatrix2[0] * dstX + trMatrix2[1] * dstY + trMatrix2[2];
       dstY = trMatrix2[3] * dstX + trMatrix2[4] * dstY + trMatrix2[5];
 
-      opticalFlow[ofArrayIndex] = dstX - srcX;
-      opticalFlow[ofArrayIndex + 1] = dstY - srcY;
+      newOpticalFlow[ofArrayIndex] = dstX - srcX;
+      newOpticalFlow[ofArrayIndex + 1] = dstY - srcY;
     }
   }
-  // TODO: Solve the segmentation fault problem caused by PyArray_Return
-  // return PyArray_Return(opticalFlowArrObj);
-  Py_INCREF(Py_None);
-  return Py_None;
+  return PyArray_Return(newOpticalFlowArrObj);
 }
 
 static PyMethodDef flowAffineTransformationMethods[] = {
