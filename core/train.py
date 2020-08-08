@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-05 11:43:44
+# @Last Modified time: 2020-08-08 17:07:05
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -130,7 +130,7 @@ def train_net(cfg):
                 masks = utils.helpers.var_or_cuda(masks)
                 optical_flows = utils.helpers.var_or_cuda(optical_flows)
 
-                est_probs = stm(frames, masks, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
+                est_probs = stm(frames, masks, optical_flows, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
                 est_probs = utils.helpers.var_or_cuda(est_probs[:, 1:]).permute(0, 2, 1, 3, 4)
                 masks = torch.argmax(masks[:, 1:], dim=2)
                 loss = nll_loss(torch.log(est_probs), masks) + lovasz_loss(est_probs, masks)

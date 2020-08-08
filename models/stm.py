@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-04 20:12:32
+# @Last Modified time: 2020-08-08 17:10:49
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -344,7 +344,7 @@ class STM(torch.nn.Module):
         # print(logit.shape)    # torch.Size([bs, n_objects, 480, 912])
         return logit
 
-    def forward(self, frames, masks, n_objects, memorize_every):
+    def forward(self, frames, masks, optical_flows, n_objects, memorize_every):
         batch_size, n_frames, _, h, w = frames.size()
         k = masks.size(2)
         est_masks = torch.zeros(batch_size, n_frames, k, h, w).float()
