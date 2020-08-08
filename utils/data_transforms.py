@@ -2,12 +2,11 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-08 11:42:06
+# @Last Modified time: 2020-08-08 17:05:04
 # @Email:  cshzxie@gmail.com
 
 import cv2
 import math
-import matplotlib.pyplot as plt
 import numbers
 import numpy as np
 import torch
@@ -19,172 +18,6 @@ import utils.helpers
 import flow_affine_transformation
 
 from PIL import Image
-
-
-def wrap(img, flo):
-    """
-    warp an image/tensor (im2) back to im1, according to the optical flow
-    x: [B, C, H, W] (im2)
-    flo: [B, 2, H, W] flow
-    """
-    img = torch.from_numpy(img.copy()).permute(2, 0, 1).unsqueeze(dim=0).float()
-    flo = torch.from_numpy(-flo.copy()).permute(2, 0, 1).unsqueeze(dim=0).float()
-
-    B, C, H, W = img.size()
-    # mesh grid
-    xx = torch.arange(0, W).view(1, -1).repeat(H, 1)
-    yy = torch.arange(0, H).view(-1, 1).repeat(1, W)
-    xx = xx.view(1, 1, H, W).repeat(B, 1, 1, 1)
-    yy = yy.view(1, 1, H, W).repeat(B, 1, 1, 1)
-    grid = torch.cat((xx, yy), 1).float()
-
-    # grid = grid.cuda()
-    vgrid = grid + flo
-
-    # scale grid to [-1,1]
-    vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :].clone() / max(W - 1, 1) - 1.0
-    vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(H - 1, 1) - 1.0
-
-    vgrid = vgrid.permute(0, 2, 3, 1)
-    output = torch.nn.functional.grid_sample(img, vgrid)
-    mask = torch.ones(img.size())
-    mask = torch.nn.functional.grid_sample(mask, vgrid)
-
-    mask[mask < 0.9999] = 0
-    mask[mask > 0] = 1
-
-    output = output * mask
-    return output.squeeze(dim=0).permute(1, 2, 0).cpu().numpy().astype(np.uint8)
-
-
-def flow_to_image(flow):
-    """
-    Convert flow into middlebury color code image
-    :param flow: optical flow map
-    :return: optical flow image in middlebury color
-    """
-    UNKNOWN_FLOW_THRESH = 1e7
-
-    u = flow[:, :, 0]
-    v = flow[:, :, 1]
-
-    maxu = -999.0
-    maxv = -999.0
-    minu = 999.0
-    minv = 999.0
-
-    idxUnknow = (abs(u) > UNKNOWN_FLOW_THRESH) | (abs(v) > UNKNOWN_FLOW_THRESH)
-    u[idxUnknow] = 0
-    v[idxUnknow] = 0
-
-    maxu = max(maxu, np.max(u))
-    minu = min(minu, np.min(u))
-
-    maxv = max(maxv, np.max(v))
-    minv = min(minv, np.min(v))
-
-    rad = np.sqrt(u**2 + v**2)
-    maxrad = max(-1, np.max(rad))
-
-    u = u / (maxrad + np.finfo(float).eps)
-    v = v / (maxrad + np.finfo(float).eps)
-
-    img = compute_color(u, v)
-
-    idx = np.repeat(idxUnknow[:, :, np.newaxis], 3, axis=2)
-    img[idx] = 0
-
-    return np.uint8(img)
-
-
-def compute_color(u, v):
-    """
-    compute optical flow color map
-    :param u: optical flow horizontal map
-    :param v: optical flow vertical map
-    :return: optical flow in color code
-    """
-    [h, w] = u.shape
-    img = np.zeros([h, w, 3])
-    nanIdx = np.isnan(u) | np.isnan(v)
-    u[nanIdx] = 0
-    v[nanIdx] = 0
-
-    colorwheel = make_color_wheel()
-    ncols = np.size(colorwheel, 0)
-
-    rad = np.sqrt(u**2 + v**2)
-
-    a = np.arctan2(-v, -u) / np.pi
-    fk = (a + 1) / 2 * (ncols - 1) + 1
-    k0 = np.floor(fk).astype(int)
-
-    k1 = k0 + 1
-    k1[k1 == ncols + 1] = 1
-    f = fk - k0
-
-    for i in range(0, np.size(colorwheel, 1)):
-        tmp = colorwheel[:, i]
-        col0 = tmp[k0 - 1] / 255
-        col1 = tmp[k1 - 1] / 255
-        col = (1 - f) * col0 + f * col1
-
-        idx = rad <= 1
-        col[idx] = 1 - rad[idx] * (1 - col[idx])
-        notidx = np.logical_not(idx)
-
-        col[notidx] *= 0.75
-        img[:, :, i] = np.uint8(np.floor(255 * col * (1 - nanIdx)))
-
-    return img
-
-
-def make_color_wheel():
-    """
-    Generate color wheel according Middlebury color code
-    :return: Color wheel
-    """
-    RY = 15
-    YG = 6
-    GC = 4
-    CB = 11
-    BM = 13
-    MR = 6
-
-    ncols = RY + YG + GC + CB + BM + MR
-    colorwheel = np.zeros([ncols, 3])
-    col = 0
-
-    # RY
-    colorwheel[0:RY, 0] = 255
-    colorwheel[0:RY, 1] = np.transpose(np.floor(255 * np.arange(0, RY) / RY))
-    col += RY
-
-    # YG
-    colorwheel[col:col + YG, 0] = 255 - np.transpose(np.floor(255 * np.arange(0, YG) / YG))
-    colorwheel[col:col + YG, 1] = 255
-    col += YG
-
-    # GC
-    colorwheel[col:col + GC, 1] = 255
-    colorwheel[col:col + GC, 2] = np.transpose(np.floor(255 * np.arange(0, GC) / GC))
-    col += GC
-
-    # CB
-    colorwheel[col:col + CB, 1] = 255 - np.transpose(np.floor(255 * np.arange(0, CB) / CB))
-    colorwheel[col:col + CB, 2] = 255
-    col += CB
-
-    # BM
-    colorwheel[col:col + BM, 2] = 255
-    colorwheel[col:col + BM, 0] = np.transpose(np.floor(255 * np.arange(0, BM) / BM))
-    col += +BM
-
-    # MR
-    colorwheel[col:col + MR, 2] = 255 - np.transpose(np.floor(255 * np.arange(0, MR) / MR))
-    colorwheel[col:col + MR, 0] = 255
-
-    return colorwheel
 
 
 class Compose(object):
@@ -200,34 +33,6 @@ class Compose(object):
     def __call__(self, frames, masks, optical_flows):
         for tr in self.transformers:
             transform = tr['callback']
-
-            plt.figure(figsize=(20, 10))
-            ax1 = plt.subplot(2, 3, 1)
-            ax1.imshow(frames[0])
-            ax1.grid(b=True, which="major", color="#ff0000", linestyle="-")
-
-            ax2 = plt.subplot(2, 3, 2)
-            ax2.imshow(frames[1])
-            ax2.grid(b=True, which="major", color="#ff0000", linestyle="-")
-
-            ax3 = plt.subplot(2, 3, 3)
-            ax3.imshow(frames[2])
-            ax3.grid(b=True, which="major", color="#ff0000", linestyle="-")
-
-            ax4 = plt.subplot(2, 3, 4)
-            ax4.imshow(flow_to_image(optical_flows[0]))
-
-            ax5 = plt.subplot(2, 3, 5)
-            ax5.imshow(wrap(frames[0], optical_flows[0]))
-            ax5.grid(b=True, which="major", color="#ff0000", linestyle="-")
-
-            ax6 = plt.subplot(2, 3, 6)
-            ax6.imshow(wrap(frames[1], optical_flows[1]))
-            ax6.grid(b=True, which="major", color="#ff0000", linestyle="-")
-
-            plt.show()
-            print(transform)
-
             frames, masks, optical_flows = transform(frames, masks, optical_flows)
 
         return frames, masks, optical_flows

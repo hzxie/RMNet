@@ -2,7 +2,7 @@
  * @Author: Haozhe Xie
  * @Date:   2020-08-07 10:37:26
  * @Last Modified by:   Haozhe Xie
- * @Last Modified time: 2020-08-08 11:53:40
+ * @Last Modified time: 2020-08-08 16:58:12
  * @Email:  cshzxie@gmail.com
  *
  * References:
@@ -13,6 +13,7 @@
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
+#include <cmath>
 #include <Python.h>
 #include <numpy/arrayobject.h>
 
@@ -62,13 +63,18 @@ static PyObject *updateOpticalFlow(PyObject *self, PyObject *args) {
     for (size_t j = 0; j < width; ++j) {
       // NOTE: i -> Y; j -> X
       size_t ofArrayIndex = (i * width + j) * 2;
-      float srcX = trMatrix1[0] * j + trMatrix1[1] * i + trMatrix1[2];
-      float srcY = trMatrix1[3] * j + trMatrix1[4] * i + trMatrix1[5];
+      float srcX = std::round(trMatrix1[0] * j + trMatrix1[1] * i + trMatrix1[2]);
+      float srcY = std::round(trMatrix1[3] * j + trMatrix1[4] * i + trMatrix1[5]);
 
       float dstX = j + opticalFlow[ofArrayIndex];
       float dstY = i + opticalFlow[ofArrayIndex + 1];
-      dstX = trMatrix2[0] * dstX + trMatrix2[1] * dstY + trMatrix2[2];
-      dstY = trMatrix2[3] * dstX + trMatrix2[4] * dstY + trMatrix2[5];
+      dstX = std::round(trMatrix2[0] * dstX + trMatrix2[1] * dstY + trMatrix2[2]);
+      dstY = std::round(trMatrix2[3] * dstX + trMatrix2[4] * dstY + trMatrix2[5]);
+
+      srcX = srcX < 0 ? 0 : (srcX >= width ? width - 1 : srcX);
+      srcY = srcY < 0 ? 0 : (srcY >= height ? height - 1 : srcY);
+      dstX = srcX < 0 ? 0 : (dstX >= width ? width - 1 : dstX);
+      dstY = dstY < 0 ? 0 : (dstY >= height ? height - 1 : dstY);
 
       newOpticalFlow[ofArrayIndex] = dstX - srcX;
       newOpticalFlow[ofArrayIndex + 1] = dstY - srcY;
