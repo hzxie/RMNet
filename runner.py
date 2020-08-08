@@ -3,10 +3,11 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:00:36
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-05 11:37:20
+# @Last Modified time: 2020-08-07 09:14:25
 # @Email:  cshzxie@gmail.com
 
 import argparse
+import importlib
 import logging
 import matplotlib
 import os
@@ -79,6 +80,9 @@ if __name__ == '__main__':
     if sys.version_info < (3, 0):
         raise Exception("Please use Python 3.x")
 
+    # References: https://stackoverflow.com/a/53553516/1841143
+    importlib.reload(logging)
     logging.basicConfig(format='[%(levelname)s] %(asctime)s %(message)s')
     logging.getLogger().setLevel(logging.INFO)
+
     main()

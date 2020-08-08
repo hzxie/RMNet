@@ -2,7 +2,7 @@
  * @Author: Haozhe Xie
  * @Date:   2020-08-07 10:37:26
  * @Last Modified by:   Haozhe Xie
- * @Last Modified time: 2020-08-07 21:16:12
+ * @Last Modified time: 2020-08-07 22:20:29
  * @Email:  cshzxie@gmail.com
  *
  * References:
@@ -31,26 +31,25 @@ static PyObject *updateOpticalFlow(PyObject *self, PyObject *args) {
   float *trMatrix1 = static_cast<float *>(PyArray_DATA(trMatrix1ArrObj));
   float *trMatrix2 = static_cast<float *>(PyArray_DATA(trMatrix2ArrObj));
 
-  npy_intp *opticalFlowShape = PyArray_DIMS(opticalFlowArrObj);
-  int height = opticalFlowShape[0], width = opticalFlowShape[1];
+  npy_intp *opticalFlowShape = PyArray_SHAPE(opticalFlowArrObj);
+  size_t height = opticalFlowShape[0], width = opticalFlowShape[1];
 
   for (size_t i = 0; i < height; ++i) {
     for (size_t j = 0; j < width; ++j) {
       // NOTE: i -> Y; j -> X
       size_t ofArrayIndex = (i * width + j) * 2;
-      float srcX = trMatrix1[0] * j + trMatrix1[1] * j + trMatrix1[2];
-      float srcY = trMatrix1[3] * i + trMatrix1[4] * i + trMatrix1[5];
+      float srcX = trMatrix1[0] * j + trMatrix1[1] * i + trMatrix1[2];
+      float srcY = trMatrix1[3] * j + trMatrix1[4] * i + trMatrix1[5];
 
       float dstX = j + opticalFlow[ofArrayIndex];
       float dstY = i + opticalFlow[ofArrayIndex + 1];
-      dstX = trMatrix2[0] * dstX + trMatrix2[1] * dstX + trMatrix2[2];
-      dstY = trMatrix2[3] * dstY + trMatrix2[4] * dstY + trMatrix2[5];
+      dstX = trMatrix2[0] * dstX + trMatrix2[1] * dstY + trMatrix2[2];
+      dstY = trMatrix2[3] * dstX + trMatrix2[4] * dstY + trMatrix2[5];
 
       opticalFlow[ofArrayIndex] = dstX - srcX;
       opticalFlow[ofArrayIndex + 1] = dstY - srcY;
     }
   }
-
   // TODO: Solve the segmentation fault problem caused by PyArray_Return
   // return PyArray_Return(opticalFlowArrObj);
   Py_INCREF(Py_None);
