@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:00:36
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-07 09:14:25
+# @Last Modified time: 2020-08-08 22:51:51
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -23,7 +23,7 @@ from core.inference import inference_net
 
 
 def get_args_from_command_line():
-    parser = argparse.ArgumentParser(description='The argument parser of R2Net runner')
+    parser = argparse.ArgumentParser(description='The argument parser of the runner')
     parser.add_argument('--exp', dest='exp_name', help='Experiment Name', default=None, type=str)
     parser.add_argument('--cfg',
                         dest='cfg_file',
