@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:26
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-05 10:10:38
+# @Last Modified time: 2020-08-08 17:06:25
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -47,7 +47,8 @@ def inference_net(cfg):
     # The inference loop
     for idx, (video_name, n_objects, frames, masks, optical_flows) in enumerate(test_data_loader):
         with torch.no_grad():
-            est_probs = utils.helpers.multi_scale_inference(cfg, stm, frames, masks, n_objects)
+            est_probs = utils.helpers.multi_scale_inference(cfg, stm, frames, masks, optical_flows,
+                                                            n_objects)
 
             video_name = video_name[0]
             output_folder = os.path.join(cfg.DIR.OUT_PATH, 'benchmark', cfg.CONST.EXP_NAME,

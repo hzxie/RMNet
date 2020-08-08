@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-05 10:10:32
+# @Last Modified time: 2020-08-08 17:06:56
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -74,9 +74,10 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
             try:
                 if epoch_idx == -1:
                     est_probs = utils.helpers.multi_scale_inference(cfg, stm, frames, masks,
-                                                                    n_objects)
+                                                                    optical_flows, n_objects)
                 else:
-                    est_probs = stm(frames, masks, n_objects, cfg.TEST.MEMORIZE_EVERY)
+                    est_probs = stm(frames, masks, optical_flows, n_objects,
+                                    cfg.TEST.MEMORIZE_EVERY)
 
                 est_probs = est_probs.permute(0, 2, 1, 3, 4)
                 masks = torch.argmax(masks, dim=2)
