@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-05 11:31:24
+# @Last Modified time: 2020-08-08 10:26:46
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -42,7 +42,7 @@ class Dataset(torch.utils.data.dataset.Dataset):
         video = self.file_list[idx]
         frames = []
         masks = []
-        optical_flows = []
+        opt_flows = []
 
         frame_indexes = self._get_frame_indexes(video['n_frames'], self.n_max_frames)
         for fi in frame_indexes:
@@ -51,10 +51,9 @@ class Dataset(torch.utils.data.dataset.Dataset):
             mask = IO.get(video['masks'][fi])
             mask = mask.convert('P') if mask is not None else np.zeros(frame.shape[:-1])
             masks.append(np.array(mask))
-            optical_flow = IO.get(video['optical_flow'][fi])
-            optical_flow = optical_flow if optical_flow is not None else np.zeros(
-                frame.shape[:-1] + (2, ))
-            optical_flows.append(np.array(optical_flow))
+            opt_flow = IO.get(video['optical_flow'][fi])
+            opt_flow = opt_flow if opt_flow is not None else np.zeros(frame.shape[:-1] + (2, ))
+            opt_flows.append(np.array(opt_flow))
 
         # Number of objects in the masks
         mask_indexes = np.unique(masks[0])
@@ -64,9 +63,9 @@ class Dataset(torch.utils.data.dataset.Dataset):
 
         # Data preprocessing and augmentation
         if self.transforms is not None:
-            frames, masks, optical_flows = self.transforms(frames, masks, optical_flows)
+            frames, masks, opt_flows = self.transforms(frames, masks, opt_flows)
 
-        return video['name'], n_objects, frames, masks, optical_flows
+        return video['name'], n_objects, frames, masks, opt_flows
 
     def _get_frame_indexes(self, n_frames, n_max_frames):
         if n_max_frames == 0:
@@ -181,7 +180,8 @@ class DavisDataset(object):
                     'scale': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_SCALE,
                     'shears': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_SHEARS,
                     'frame_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_FILL_COLOR,
-                    'mask_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_MASK_FILL_COLOR
+                    'mask_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_MASK_FILL_COLOR,
+                    'optical_flow_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_FLOW_FILL_COLOR
                 }
             }, {
                 'callback': 'RandomCrop',
@@ -320,7 +320,8 @@ class YoutubeVosDataset(object):
                     'scale': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_SCALE,
                     'shears': cfg.TRAIN.AUGMENTATION.AFFINE_VIDEO_SHEARS,
                     'frame_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_FILL_COLOR,
-                    'mask_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_MASK_FILL_COLOR
+                    'mask_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_MASK_FILL_COLOR,
+                    'optical_flow_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_FLOW_FILL_COLOR
                 }
             }, {
                 'callback': 'RandomCrop',
@@ -449,7 +450,8 @@ class ImageDataset(object):
                     'scale': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_SCALE,
                     'shears': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_SHEARS,
                     'frame_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_IMAGE_FILL_COLOR,
-                    'mask_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_MASK_FILL_COLOR
+                    'mask_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_MASK_FILL_COLOR,
+                    'optical_flow_fill_color': cfg.TRAIN.AUGMENTATION.AFFINE_FLOW_FILL_COLOR
                 }
             },
             {

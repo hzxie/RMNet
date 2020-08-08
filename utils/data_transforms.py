@@ -2,21 +2,189 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-05 11:32:54
+# @Last Modified time: 2020-08-08 10:51:00
 # @Email:  cshzxie@gmail.com
 
+import cv2
 import math
+import matplotlib.pyplot as plt
 import numbers
 import numpy as np
 import torch
+import torchvision.transforms
 import random
 import sys
 
-import torchvision.transforms
-
 import utils.helpers
+import flow_affine_transformation
 
 from PIL import Image
+
+
+def wrap(img, flo):
+    """
+    warp an image/tensor (im2) back to im1, according to the optical flow
+    x: [B, C, H, W] (im2)
+    flo: [B, 2, H, W] flow
+    """
+    img = torch.from_numpy(img.copy()).permute(2, 0, 1).unsqueeze(dim=0).float()
+    flo = torch.from_numpy(-flo.copy()).permute(2, 0, 1).unsqueeze(dim=0).float()
+
+    B, C, H, W = img.size()
+    # mesh grid
+    xx = torch.arange(0, W).view(1, -1).repeat(H, 1)
+    yy = torch.arange(0, H).view(-1, 1).repeat(1, W)
+    xx = xx.view(1, 1, H, W).repeat(B, 1, 1, 1)
+    yy = yy.view(1, 1, H, W).repeat(B, 1, 1, 1)
+    grid = torch.cat((xx, yy), 1).float()
+
+    # grid = grid.cuda()
+    vgrid = grid + flo
+
+    # scale grid to [-1,1]
+    vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :].clone() / max(W - 1, 1) - 1.0
+    vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(H - 1, 1) - 1.0
+
+    vgrid = vgrid.permute(0, 2, 3, 1)
+    output = torch.nn.functional.grid_sample(img, vgrid)
+    mask = torch.ones(img.size())
+    mask = torch.nn.functional.grid_sample(mask, vgrid)
+
+    mask[mask < 0.9999] = 0
+    mask[mask > 0] = 1
+
+    output = output * mask
+    return output.squeeze(dim=0).permute(1, 2, 0).cpu().numpy().astype(np.uint8)
+
+
+def flow_to_image(flow):
+    """
+    Convert flow into middlebury color code image
+    :param flow: optical flow map
+    :return: optical flow image in middlebury color
+    """
+    UNKNOWN_FLOW_THRESH = 1e7
+
+    u = flow[:, :, 0]
+    v = flow[:, :, 1]
+
+    maxu = -999.0
+    maxv = -999.0
+    minu = 999.0
+    minv = 999.0
+
+    idxUnknow = (abs(u) > UNKNOWN_FLOW_THRESH) | (abs(v) > UNKNOWN_FLOW_THRESH)
+    u[idxUnknow] = 0
+    v[idxUnknow] = 0
+
+    maxu = max(maxu, np.max(u))
+    minu = min(minu, np.min(u))
+
+    maxv = max(maxv, np.max(v))
+    minv = min(minv, np.min(v))
+
+    rad = np.sqrt(u**2 + v**2)
+    maxrad = max(-1, np.max(rad))
+
+    u = u / (maxrad + np.finfo(float).eps)
+    v = v / (maxrad + np.finfo(float).eps)
+
+    img = compute_color(u, v)
+
+    idx = np.repeat(idxUnknow[:, :, np.newaxis], 3, axis=2)
+    img[idx] = 0
+
+    return np.uint8(img)
+
+
+def compute_color(u, v):
+    """
+    compute optical flow color map
+    :param u: optical flow horizontal map
+    :param v: optical flow vertical map
+    :return: optical flow in color code
+    """
+    [h, w] = u.shape
+    img = np.zeros([h, w, 3])
+    nanIdx = np.isnan(u) | np.isnan(v)
+    u[nanIdx] = 0
+    v[nanIdx] = 0
+
+    colorwheel = make_color_wheel()
+    ncols = np.size(colorwheel, 0)
+
+    rad = np.sqrt(u**2 + v**2)
+
+    a = np.arctan2(-v, -u) / np.pi
+    fk = (a + 1) / 2 * (ncols - 1) + 1
+    k0 = np.floor(fk).astype(int)
+
+    k1 = k0 + 1
+    k1[k1 == ncols + 1] = 1
+    f = fk - k0
+
+    for i in range(0, np.size(colorwheel, 1)):
+        tmp = colorwheel[:, i]
+        col0 = tmp[k0 - 1] / 255
+        col1 = tmp[k1 - 1] / 255
+        col = (1 - f) * col0 + f * col1
+
+        idx = rad <= 1
+        col[idx] = 1 - rad[idx] * (1 - col[idx])
+        notidx = np.logical_not(idx)
+
+        col[notidx] *= 0.75
+        img[:, :, i] = np.uint8(np.floor(255 * col * (1 - nanIdx)))
+
+    return img
+
+
+def make_color_wheel():
+    """
+    Generate color wheel according Middlebury color code
+    :return: Color wheel
+    """
+    RY = 15
+    YG = 6
+    GC = 4
+    CB = 11
+    BM = 13
+    MR = 6
+
+    ncols = RY + YG + GC + CB + BM + MR
+    colorwheel = np.zeros([ncols, 3])
+    col = 0
+
+    # RY
+    colorwheel[0:RY, 0] = 255
+    colorwheel[0:RY, 1] = np.transpose(np.floor(255 * np.arange(0, RY) / RY))
+    col += RY
+
+    # YG
+    colorwheel[col:col + YG, 0] = 255 - np.transpose(np.floor(255 * np.arange(0, YG) / YG))
+    colorwheel[col:col + YG, 1] = 255
+    col += YG
+
+    # GC
+    colorwheel[col:col + GC, 1] = 255
+    colorwheel[col:col + GC, 2] = np.transpose(np.floor(255 * np.arange(0, GC) / GC))
+    col += GC
+
+    # CB
+    colorwheel[col:col + CB, 1] = 255 - np.transpose(np.floor(255 * np.arange(0, CB) / CB))
+    colorwheel[col:col + CB, 2] = 255
+    col += CB
+
+    # BM
+    colorwheel[col:col + BM, 2] = 255
+    colorwheel[col:col + BM, 0] = np.transpose(np.floor(255 * np.arange(0, BM) / BM))
+    col += +BM
+
+    # MR
+    colorwheel[col:col + MR, 2] = 255 - np.transpose(np.floor(255 * np.arange(0, MR) / MR))
+    colorwheel[col:col + MR, 0] = 255
+
+    return colorwheel
 
 
 class Compose(object):
@@ -32,6 +200,34 @@ class Compose(object):
     def __call__(self, frames, masks, optical_flows):
         for tr in self.transformers:
             transform = tr['callback']
+
+            plt.figure(figsize=(20, 10))
+            ax1 = plt.subplot(2, 3, 1)
+            ax1.imshow(frames[0])
+            ax1.grid(b=True, which="major", color="#ff0000", linestyle="-")
+
+            ax2 = plt.subplot(2, 3, 2)
+            ax2.imshow(frames[1])
+            ax2.grid(b=True, which="major", color="#ff0000", linestyle="-")
+
+            ax3 = plt.subplot(2, 3, 3)
+            ax3.imshow(frames[2])
+            ax3.grid(b=True, which="major", color="#ff0000", linestyle="-")
+
+            ax4 = plt.subplot(2, 3, 4)
+            ax4.imshow(flow_to_image(optical_flows[0]))
+
+            ax5 = plt.subplot(2, 3, 5)
+            ax5.imshow(wrap(frames[0], optical_flows[0]))
+            ax5.grid(b=True, which="major", color="#ff0000", linestyle="-")
+
+            ax6 = plt.subplot(2, 3, 6)
+            ax6.imshow(wrap(frames[1], optical_flows[1]))
+            ax6.grid(b=True, which="major", color="#ff0000", linestyle="-")
+
+            plt.show()
+            print(transform)
+
             frames, masks, optical_flows = transform(frames, masks, optical_flows)
 
         return frames, masks, optical_flows
@@ -114,11 +310,12 @@ class RandomFlip(object):
     def __call__(self, frames, masks, optical_flows):
         rnd_value = random.random()
 
-        for idx, (f, m) in enumerate(zip(frames, masks)):
-            if rnd_value <= 0.5:
+        if rnd_value <= 0.5:
+            for idx, (f, m, of) in enumerate(zip(frames, masks, optical_flows)):
                 frames[idx] = np.flip(f, axis=1)
                 masks[idx] = np.flip(m, axis=1)
-                optical_flows[idx] = -optical_flows[idx]
+                optical_flows[idx] = np.flip(of, axis=1)
+                optical_flows[idx][..., 0] = -optical_flows[idx][..., 0]
 
         return frames, masks, optical_flows
 
@@ -142,12 +339,15 @@ class Resize(object):
             width = self.size
 
         frames = [
-            np.array(Image.fromarray(f).resize((width, height), Image.BILINEAR)) for f in frames
+            cv2.resize(f, dsize=(width, height), interpolation=cv2.INTER_LINEAR) for f in frames
         ]
         masks = [
-            np.array(Image.fromarray(m).resize((width, height), Image.NEAREST)) for m in masks
+            cv2.resize(m, dsize=(width, height), interpolation=cv2.INTER_NEAREST) for m in masks
         ]
-        # TODO: optical_flows
+        optical_flows = [
+            cv2.resize(of, dsize=(width, height), interpolation=cv2.INTER_LINEAR) * scale
+            for of in optical_flows
+        ]
         return frames, masks, optical_flows
 
 
@@ -158,6 +358,9 @@ class RandomCrop(object):
         self.ignore_idx = parameters['ignore_idx']
 
     def __call__(self, frames, masks, optical_flows):
+        prev_x_min = 0
+        prev_y_min = 0
+
         n_frames = len(frames)
         for i in range(n_frames):
             x_min = sys.maxsize
@@ -209,8 +412,16 @@ class RandomCrop(object):
             # Crop the frame and mask
             frames[i] = frames[i][y_min:y_min + self.height, x_min:x_min + self.width, :]
             masks[i] = masks[i][y_min:y_min + self.height, x_min:x_min + self.width]
+            optical_flows[i] = optical_flows[i][y_min:y_min + self.height,
+                                                x_min:x_min + self.width, :]
+            # Update the values of optical flow
+            if i > 0:
+                optical_flows[i - 1][..., 0] += prev_x_min - x_min
+                optical_flows[i - 1][..., 1] += prev_y_min - y_min
 
-        # TODO: optical_flows
+            prev_x_min = x_min
+            prev_y_min = y_min
+
         return frames, masks, optical_flows
 
 
@@ -240,10 +451,13 @@ class RandomAffine(object):
         self.shears = parameters['shears']
         self.frame_fill_color = parameters['frame_fill_color']
         self.mask_fill_color = parameters['mask_fill_color']
+        self.optical_flow_fill_color = parameters['optical_flow_fill_color']
 
     def __call__(self, frames, masks, optical_flows):
         img_h, img_w = masks[0].shape
+        center = (img_h * 0.5 + 0.5, img_w * 0.5 + 0.5)
 
+        tr_matices = []
         for idx, (f, m) in enumerate(zip(frames, masks)):
             degrees, translate, scale, shears = torchvision.transforms.RandomAffine.get_params(
                 degrees=self.degrees,
@@ -252,30 +466,27 @@ class RandomAffine(object):
                 shears=self.shears,
                 img_size=(img_h, img_w))
 
-            frames[idx] = np.array(
-                self._affine(Image.fromarray(f),
-                             degrees,
-                             translate,
-                             scale,
-                             shears,
-                             fillcolor=tuple(self.frame_fill_color)))
-            masks[idx] = np.array(
-                self._affine(Image.fromarray(m),
-                             degrees,
-                             translate,
-                             scale,
-                             shears,
-                             fillcolor=self.mask_fill_color))
+            tr_matrix = self._get_inverse_affine_matrix(center, degrees, translate, scale, shears)
+            tr_matices.append(tr_matrix)
 
-        # TODO: optical_flows
+            frames[idx] = self._affine(f, tr_matrix, fillcolor=tuple(self.frame_fill_color))
+            masks[idx] = self._affine(m, tr_matrix, fillcolor=self.mask_fill_color)
+
+        for idx, of in enumerate(optical_flows):
+            # Skip the last frame
+            if idx == len(optical_flows) - 1:
+                continue
+
+            # Update the optical flow values
+            flow_affine_transformation.update_optical_flow(of, tr_matices[idx], tr_matices[idx + 1])
+            optical_flows[idx] = self._affine(of,
+                                              tr_matices[idx],
+                                              fillcolor=tuple(self.optical_flow_fill_color))
+
         return frames, masks, optical_flows
 
-    def _affine(self, img, degree, translate, scale, shear, resample=0, fillcolor=None):
-        center = (img.size[0] * 0.5 + 0.5, img.size[1] * 0.5 + 0.5)
-        matrix = self._get_inverse_affine_matrix(center, degree, translate, scale, shear)
-        kwargs = {"fillcolor": fillcolor}
-
-        return img.transform(img.size, Image.AFFINE, matrix, resample, **kwargs)
+    def _affine(self, img, matrix, fillcolor=None):
+        return cv2.warpAffine(img, matrix, (img.shape[1], img.shape[0]), borderValue=fillcolor)
 
     def _get_inverse_affine_matrix(self, center, angle, translate, scale, shear):
         # Helper method to compute inverse matrix for affine transformation
@@ -295,7 +506,8 @@ class RandomAffine(object):
         #          [0, 1      ]              [-tan(s), 1]
         #
         # Thus, the inverse is M^-1 = C * RSS^-1 * C^-1 * T^-1
-
+        #
+        # See also: https://stackabuse.com/affine-image-transformations-in-python-with-numpy-pillow-and-opencv/
         if isinstance(shear, numbers.Number):
             shear = [shear, 0]
 
@@ -327,4 +539,5 @@ class RandomAffine(object):
         # Apply center translation: C * RSS^-1 * C^-1 * T^-1
         M[2] += cx
         M[5] += cy
-        return M
+
+        return np.array(M).astype(np.float32).reshape(2, 3)

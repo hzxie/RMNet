@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-04 20:23:24
+# @Last Modified time: 2020-08-08 10:51:26
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -124,6 +124,7 @@ __C.TRAIN.AUGMENTATION.AFFINE_VIDEO_SCALE        = (0.95, 1.05)
 __C.TRAIN.AUGMENTATION.AFFINE_VIDEO_SHEARS       = (-10, 10)
 __C.TRAIN.AUGMENTATION.AFFINE_IMAGE_FILL_COLOR   = (255, 255, 255)
 __C.TRAIN.AUGMENTATION.AFFINE_MASK_FILL_COLOR    = 255
+__C.TRAIN.AUGMENTATION.AFFINE_FLOW_FILL_COLOR    = (0, 0)
 
 #
 # Test
