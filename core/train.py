@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-08 17:48:11
+# @Last Modified time: 2020-08-09 11:35:09
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -80,6 +80,10 @@ def train_net(cfg):
     # Load the pretrained model if exists
     init_epoch = 0
     best_metrics = None
+    METRICS_THRESHOLD = Metrics(
+        cfg.TEST.MAIN_METRIC_NAME,
+        [cfg.TRAIN.CKPT_SAVE_THRESHOLD for i in range(len(Metrics.names()))])
+
     if 'WEIGHTS' in cfg.CONST:
         logging.info('Recovering from %s ...' % (cfg.CONST.WEIGHTS))
         checkpoint = torch.load(cfg.CONST.WEIGHTS)
@@ -161,14 +165,12 @@ def train_net(cfg):
             (epoch_idx, cfg.TRAIN.N_EPOCHS, epoch_end_time - epoch_start_time, losses.avg()))
 
         # Evaluate the current model
-        metrics = test_net(cfg, epoch_idx, val_data_loader, val_writer, stm)
+        metrics = METRICS_THRESHOLD
+        if cfg.TRAIN.CKPT_SAVE_FREQ != 1:
+            metrics = test_net(cfg, epoch_idx, val_data_loader, val_writer, stm)
 
         # Save ckeckpoints
-        metric_threshold = Metrics(
-            cfg.TEST.MAIN_METRIC_NAME,
-            [cfg.TRAIN.CKPT_SAVE_THRESHOLD for i in range(len(Metrics.names()))])
-
-        if epoch_idx % cfg.TRAIN.CKPT_SAVE_FREQ == 0 and metrics.better_than(metric_threshold):
+        if epoch_idx % cfg.TRAIN.CKPT_SAVE_FREQ == 0 and metrics.better_than(METRICS_THRESHOLD):
             output_path = os.path.join(cfg.DIR.CHECKPOINTS, 'ckpt-epoch-%03d.pth' % epoch_idx)
             torch.save({
                 'epoch_index': epoch_idx,
@@ -177,7 +179,7 @@ def train_net(cfg):
             }, output_path)  # yapf: disable
             logging.info('Saved checkpoint to %s ...' % output_path)
 
-        if metrics.better_than(best_metrics):
+        if metrics is not None and metrics.better_than(best_metrics):
             output_path = os.path.join(cfg.DIR.CHECKPOINTS, 'ckpt-best.pth')
             best_metrics = metrics
             torch.save({
