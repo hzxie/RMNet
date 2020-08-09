@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-08 17:05:04
+# @Last Modified time: 2020-08-09 12:24:56
 # @Email:  cshzxie@gmail.com
 
 import cv2
@@ -45,7 +45,7 @@ class ToTensor(object):
     def __call__(self, frames, masks, optical_flows):
         frames = torch.from_numpy(np.array(frames)).float().permute(0, 3, 1, 2)
         masks = torch.from_numpy(np.array(masks))
-        optical_flows = torch.from_numpy(np.array(optical_flows)).permute(0, 3, 1, 2)
+        optical_flows = torch.from_numpy(np.array(optical_flows)).float().permute(0, 3, 1, 2)
 
         return frames, masks, optical_flows
 

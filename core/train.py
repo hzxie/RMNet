@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-09 11:35:09
+# @Last Modified time: 2020-08-09 12:38:24
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -145,6 +145,7 @@ def train_net(cfg):
                 optimizer.step()
             except Exception as ex:
                 logging.warn(ex)
+                torch.cuda.empty_cache()
                 continue
 
             n_itr = (epoch_idx - 1) * n_batches + batch_idx
