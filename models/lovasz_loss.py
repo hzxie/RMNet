@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-26 15:03:35
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-05 11:45:55
+# @Last Modified time: 2020-08-09 12:48:20
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -54,7 +54,11 @@ class LovaszLoss(torch.nn.Module):
         input = input.permute(0, 2, 3, 4, 1).contiguous().view(-1, C)    # B * F * H * W, C = P, C
         target = target.view(-1)
 
-        valid = target.ne(self.ignore_index).nonzero(as_tuple=False).squeeze()
+        if torch.__version__ >= '1.2.0':
+            valid = target.ne(self.ignore_index).nonzero(as_tuple=False).squeeze()
+        else:
+            valid = target.ne(self.ignore_index).nonzero().squeeze()
+
         vinput = input[valid]
         vtarget = target[valid]
 

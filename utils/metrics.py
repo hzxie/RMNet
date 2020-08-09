@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2019-08-08 14:31:30
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-26 11:29:36
+# @Last Modified time: 2020-08-09 12:46:08
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers
@@ -276,4 +276,4 @@ class Metrics(object):
         _metric = self._items[i]
         _value = self._values[_index]
         other_value = other._values[_index]
-        return _value > other_value if _metric['is_greater_better'] else _value < other_value
+        return _value >= other_value if _metric['is_greater_better'] else _value <= other_value
