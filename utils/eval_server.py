@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-08-08 17:16:07
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-08 23:12:21
+# @Last Modified time: 2020-08-10 09:32:25
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -18,8 +18,10 @@ import sys
 
 
 def get_args_from_command_line():
-    parser = argparse.ArgumentParser(description="The argument parser of the runner")
+    parser = argparse.ArgumentParser(description="The argument parser of eval_server")
     parser.add_argument("ckpt_dir", help="The path to folder that saves checkpoints")
+    parser.add_argument("--cfg", help="The path to config file", default="config.py", type=str)
+    parser.add_argument("--gpu", help="The GPU IDs to use", default=None, type=str)
     args = parser.parse_args()
     return args
 
@@ -28,7 +30,10 @@ def get_summary_writer(log_dir):
     return tensorboardX.SummaryWriter(log_dir)
 
 
-def get_assigned_gpus():
+def get_assigned_gpus(gpu_id):
+    if gpu_id is not None:
+        return [int(gpu) for gpu in gpu_id.split(',')]
+
     free_gpus = [gpu.index for gpu in gpustat.new_query() if gpu.memory_used == 0]
     # The below statement will cost 10MB/11MB on the allocated GPUs
     torch.cuda.is_available()
@@ -69,6 +74,7 @@ def main():
         sys.exit(2)
     else:
         args.ckpt_dir = os.path.abspath(args.ckpt_dir)
+        args.cfg = os.path.abspath(args.cfg)
         logging.info("Evaluation server started.")
 
     # Set up new summary writer
@@ -77,7 +83,7 @@ def main():
     logging.info("Tensorborad Logs available at: %s" % log_dir)
 
     # Detect available GPUs
-    free_gpus = get_assigned_gpus()
+    free_gpus = get_assigned_gpus(args.gpu)
     logging.info("Availble GPUs: %s" % free_gpus)
 
     # Detect new checkpoints
@@ -131,6 +137,8 @@ def main():
                 os.path.join(args.ckpt_dir, checkpoint),
                 "--gpu",
                 str(assigned_gpu),
+                "--cfg",
+                str(args.cfg)
             ],
             cwd=os.path.abspath(os.pardir),
             stdout=subprocess.PIPE,

@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-06 11:10:25
+# @Last Modified time: 2020-08-09 14:18:36
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -49,7 +49,7 @@ def multi_scale_inference(cfg, network, frames, masks, optical_flows, n_objects)
                                 align_corners=False).unsqueeze(dim=0)
         _masks = F.interpolate(masks[0].float(), scale_factor=fs,
                                mode='nearest').int().unsqueeze(dim=0)
-        _optical_flows = F.interpolate(_optical_flows[0].float(), scale_factor=fs,
+        _optical_flows = F.interpolate(optical_flows[0].float(), scale_factor=fs,
                                        mode='nearest').unsqueeze(dim=0) * fs
 
         _est_probs = network(_frames, _masks, _optical_flows, n_objects, cfg.TEST.MEMORIZE_EVERY)
