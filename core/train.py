@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-09 12:38:24
+# @Last Modified time: 2020-08-10 08:57:43
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -166,9 +166,7 @@ def train_net(cfg):
             (epoch_idx, cfg.TRAIN.N_EPOCHS, epoch_end_time - epoch_start_time, losses.avg()))
 
         # Evaluate the current model
-        metrics = METRICS_THRESHOLD
-        if cfg.TRAIN.CKPT_SAVE_FREQ != 1:
-            metrics = test_net(cfg, epoch_idx, val_data_loader, val_writer, stm)
+        metrics = test_net(cfg, epoch_idx, val_data_loader, val_writer, stm)
 
         # Save ckeckpoints
         if epoch_idx % cfg.TRAIN.CKPT_SAVE_FREQ == 0 and metrics.better_than(METRICS_THRESHOLD):
@@ -180,7 +178,7 @@ def train_net(cfg):
             }, output_path)  # yapf: disable
             logging.info('Saved checkpoint to %s ...' % output_path)
 
-        if metrics is not None and metrics.better_than(best_metrics):
+        if metrics.better_than(best_metrics):
             output_path = os.path.join(cfg.DIR.CHECKPOINTS, 'ckpt-best.pth')
             best_metrics = metrics
             torch.save({
