@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-08-08 17:16:07
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-10 09:32:25
+# @Last Modified time: 2020-08-10 14:07:36
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -15,6 +15,8 @@ import time
 import torch
 import subprocess
 import sys
+
+from collections import OrderedDict
 
 
 def get_args_from_command_line():
@@ -28,6 +30,22 @@ def get_args_from_command_line():
 
 def get_summary_writer(log_dir):
     return tensorboardX.SummaryWriter(log_dir)
+
+
+def add_scalars(summary_writer, scalars):
+    ckpt_pending_removed = []
+    for ckpt_name, jf_mean in scalars.items():
+        if jf_mean == -1:
+            break
+
+        epoch_idx = int(ckpt_name[len('ckpt-epoch-'):-len('.pth')])
+        summary_writer.add_scalar('Metric/JF-Mean', jf_mean, epoch_idx)
+        ckpt_pending_removed.append(ckpt_name)
+
+    for ckr in ckpt_pending_removed:
+        del scalars[ckr]
+
+    return scalars
 
 
 def get_assigned_gpus(gpu_id):
@@ -91,6 +109,7 @@ def main():
     best_checkpoint = None
     running_processes = []
     tested_checkpoints = []
+    test_results_buffer = OrderedDict()
     logging.info("Listening new checkpoints at %s ..." % args.ckpt_dir)
 
     while True:
@@ -107,8 +126,8 @@ def main():
                         "Checkpoint[Name=%s] has been tested successfully, JF-Mean = %.4f." %
                         (rp["checkpoint"], jf_mean))
                     # Add the results to the TensorBoard
-                    ckpt_epoch = int(rp["checkpoint"][len('ckpt-epoch-'):-len('.pth')])
-                    test_writer.add_scalar('Metric/JF-Mean', jf_mean, ckpt_epoch)
+                    test_results_buffer[rp["checkpoint"]] = jf_mean
+                    test_results_buffer = add_scalars(test_writer, test_results_buffer)
                     # Update the best results
                     if jf_mean > best_jf_mean:
                         if best_checkpoint is not None:
@@ -130,14 +149,9 @@ def main():
         logging.info("Assign GPU[ID=%s] for the checkpoint[Name=%s]." % (assigned_gpu, checkpoint))
         process = subprocess.Popen(
             [
-                "python",
-                "runner.py",
-                "--test",
-                "--weights",
-                os.path.join(args.ckpt_dir, checkpoint),
-                "--gpu",
-                str(assigned_gpu),
-                "--cfg",
+                "python", "runner.py", "--test", "--weights",
+                os.path.join(args.ckpt_dir, checkpoint), "--gpu",
+                str(assigned_gpu), "--cfg",
                 str(args.cfg)
             ],
             cwd=os.path.abspath(os.pardir),
@@ -152,6 +166,7 @@ def main():
         })
         # Remember the tested checkpoint
         tested_checkpoints.append(checkpoint)
+        test_results_buffer[checkpoint] = -1
 
 
 if __name__ == "__main__":
