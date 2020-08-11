@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-08-08 17:16:07
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-11 17:08:28
+# @Last Modified time: 2020-08-11 20:09:17
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -26,7 +26,10 @@ def get_args_from_command_line():
     parser = argparse.ArgumentParser(description='The argument parser of eval_server')
     parser.add_argument('ckpt_dir', help='The path to folder that saves checkpoints')
     parser.add_argument('--cfg', help='The path to config file', default='config.py', type=str)
-    parser.add_argument('--gpu', help='The GPU IDs to use', default=None, type=str)
+    parser.add_argument('--gpu',
+                        help='The GPU IDs to use (None for auto detection)',
+                        default=None,
+                        type=str)
     parser.add_argument('--pavi',
                         help='The project name in PAVI (None for disabling PAVI)',
                         default=None,
@@ -215,7 +218,8 @@ def main():
 
         assigned_gpu = free_gpus.pop(0)
         logging.info('Assign GPU[ID=%s] for the checkpoint[Name=%s].' % (assigned_gpu, checkpoint))
-        process = subprocess.Popen([
+        process = subprocess.Popen(
+            [
                 "python", "runner.py", "--test", "--weights",
                 os.path.join(args.ckpt_dir, checkpoint), "--gpu",
                 str(assigned_gpu), "--cfg",
@@ -223,13 +227,15 @@ def main():
             ],
             cwd=os.path.abspath(os.pardir),
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
+            stderr=subprocess.STDOUT)  # yapf: disable
+
         # Add the process to the checklist
         running_processes.append({
             'process': process,
             'gpu': assigned_gpu,
             'checkpoint': checkpoint
         })
+
         # Remember the tested checkpoint
         tested_checkpoints.append(checkpoint)
         test_results_buffer[checkpoint] = -1

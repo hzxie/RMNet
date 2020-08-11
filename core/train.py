@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-10 08:57:43
+# @Last Modified time: 2020-08-11 19:57:54
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -25,9 +25,6 @@ from utils.summary_writer import SummaryWriter
 
 
 def train_net(cfg):
-    # Enable the inbuilt cudnn auto-tuner to find the best algorithm to use
-    torch.backends.cudnn.benchmark = True
-
     # Set up data loader
     train_data_loader = torch.utils.data.DataLoader(
         dataset=utils.data_loaders.DatasetCollector.get_dataset(

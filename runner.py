@@ -3,15 +3,18 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:00:36
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-08 22:51:51
+# @Last Modified time: 2020-08-11 20:08:34
 # @Email:  cshzxie@gmail.com
 
 import argparse
 import importlib
 import logging
 import matplotlib
+import numpy as np
 import os
+import random
 import sys
+import torch
 # Fix no $DISPLAY environment variable
 matplotlib.use('Agg')
 
@@ -30,6 +33,10 @@ def get_args_from_command_line():
                         help='Path to the config.py file',
                         default='config.py',
                         type=str)
+    parser.add_argument('--rand',
+                        dest='randomize',
+                        help='Randomize (do not use a fixed seed)',
+                        action='store_true')
     parser.add_argument('--gpu', dest='gpu_id', help='GPU device to use', default=None, type=str)
     parser.add_argument('--test', dest='test', help='Test neural networks', action='store_true')
     parser.add_argument('--inference',
@@ -56,6 +63,13 @@ def main():
     # Parse runtime arguments
     if args.gpu_id is not None:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
+    if not args.randomize:
+        random.seed(cfg.CONST.RNG_SEED)
+        np.random.seed(cfg.CONST.RNG_SEED)
+        torch.manual_seed(cfg.CONST.RNG_SEED)
+        # References: https://pytorch.org/docs/stable/notes/randomness.html
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
     if args.exp_name is not None:
         cfg.CONST.EXP_NAME = args.exp_name
     if args.weights is not None:
