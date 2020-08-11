@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-08-08 17:16:07
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-11 15:28:15
+# @Last Modified time: 2020-08-11 17:08:28
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -12,7 +12,6 @@ import gpustat
 import logging
 import os
 import requests
-import tensorboardX
 import time
 import torch
 import shutil
@@ -28,6 +27,10 @@ def get_args_from_command_line():
     parser.add_argument('ckpt_dir', help='The path to folder that saves checkpoints')
     parser.add_argument('--cfg', help='The path to config file', default='config.py', type=str)
     parser.add_argument('--gpu', help='The GPU IDs to use', default=None, type=str)
+    parser.add_argument('--pavi',
+                        help='The project name in PAVI (None for disabling PAVI)',
+                        default=None,
+                        type=str)
     parser.add_argument(
         '--remote',
         help='The remote folder that saves checkpoints (e.g., http://10.1.75.35:8000/)',
@@ -37,8 +40,14 @@ def get_args_from_command_line():
     return args
 
 
-def get_summary_writer(log_dir):
-    return tensorboardX.SummaryWriter(log_dir)
+def get_summary_writer(log_dir, pavi_project_name):
+    if pavi_project_name is None:
+        import tensorboardX
+        return tensorboardX.SummaryWriter(log_dir)
+    else:
+        import pavi
+        _ = log_dir.split('/')
+        return pavi.SummaryWriter(task=_[-2], labels=_[-1], project=pavi_project_name)
 
 
 def add_scalars(summary_writer, scalars):
@@ -150,7 +159,7 @@ def main():
 
     # Set up new summary writer
     log_dir = os.path.join(args.ckpt_dir.replace('checkpoints', 'logs'), 'val')
-    test_writer = get_summary_writer(log_dir)
+    test_writer = get_summary_writer(log_dir, args.pavi)
     logging.info('Tensorborad Logs available at: %s' % log_dir)
 
     # Detect available GPUs
@@ -206,8 +215,7 @@ def main():
 
         assigned_gpu = free_gpus.pop(0)
         logging.info('Assign GPU[ID=%s] for the checkpoint[Name=%s].' % (assigned_gpu, checkpoint))
-        process = subprocess.Popen(
-            [
+        process = subprocess.Popen([
                 "python", "runner.py", "--test", "--weights",
                 os.path.join(args.ckpt_dir, checkpoint), "--gpu",
                 str(assigned_gpu), "--cfg",
