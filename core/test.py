@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-08 17:06:56
+# @Last Modified time: 2020-08-11 19:57:49
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -21,9 +21,6 @@ from utils.metrics import Metrics
 
 
 def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=None):
-    # Enable the inbuilt cudnn auto-tuner to find the best algorithm to use
-    torch.backends.cudnn.benchmark = True
-
     # Set up data loader
     if test_data_loader is None:
         # Set up data loader

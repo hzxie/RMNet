@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-11 11:16:55
+# @Last Modified time: 2020-08-11 20:03:22
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -57,6 +57,7 @@ __C.DATASET.TEST_DATASET                         = 'DAVIS'
 # Constants
 #
 __C.CONST                                        = edict()
+__C.CONST.RNG_SEED                               = 0
 __C.CONST.N_WORKERS                              = 2
 __C.CONST.IGNORE_IDX                             = 255
 __C.CONST.DATASET_MEAN                           = [0.485, 0.456, 0.406]
