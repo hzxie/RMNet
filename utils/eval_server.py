@@ -3,23 +3,31 @@
 # @Author: Haozhe Xie
 # @Date:   2020-08-08 17:16:07
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-11 20:09:17
+# @Last Modified time: 2020-08-12 17:01:05
 # @Email:  cshzxie@gmail.com
 
 import argparse
-import bs4
-import gpustat
 import logging
 import os
 import requests
+import shutil
+import sys
 import time
 import torch
-import shutil
-import subprocess
-import sys
+import threading
 
 from bs4 import BeautifulSoup
 from collections import OrderedDict
+
+# Add STM project to sys path
+PROJECT_HOME = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
+sys.path.append(PROJECT_HOME)
+
+import utils.data_loaders
+
+from models.stm import STM
+from utils.average_meter import AverageMeter
+from utils.metrics import Metrics
 
 
 def get_args_from_command_line():
@@ -69,17 +77,59 @@ def add_scalars(summary_writer, scalars):
     return scalars
 
 
-def get_assigned_gpus(gpu_id):
-    if gpu_id is not None:
-        return [int(gpu) for gpu in gpu_id.split(',')]
+def get_data_loader(cfg):
+    return torch.utils.data.DataLoader(dataset=utils.data_loaders.DatasetCollector.get_dataset(
+        cfg, cfg.DATASET.TEST_DATASET, utils.data_loaders.DatasetSubset.VAL),
+                                       batch_size=1,
+                                       num_workers=cfg.CONST.N_WORKERS,
+                                       pin_memory=True,
+                                       shuffle=False)
 
-    free_gpus = [gpu.index for gpu in gpustat.new_query() if gpu.memory_used == 0]
-    # The below statement will cost 10MB/11MB on the allocated GPUs
-    torch.cuda.is_available()
 
-    return [
-        gpu.index for gpu in gpustat.new_query() if gpu.memory_used > 0 and gpu.index in free_gpus
-    ]
+def get_networks(cfg):
+    networks = []
+    for i in range(torch.cuda.device_count()):
+        networks.append({
+            'network': STM(cfg).cuda(i),
+            'data_loader': get_data_loader(cfg),
+            'device': i
+        })
+
+    return networks
+
+
+def test_network(cfg, network, data_loader, checkpoint, result_set):
+    _checkpoint = torch.load(checkpoint)
+    _checkpoint = {k.replace('module.', ''): v for k, v in _checkpoint['stm'].items()}
+    network.load_state_dict(_checkpoint)
+    network.eval()
+
+    test_metrics = AverageMeter(Metrics.names())
+    device, = list(set(p.device for p in network.parameters()))
+    for idx, (video_name, n_objects, frames, masks, optical_flows) in enumerate(data_loader):
+        with torch.no_grad():
+            try:
+                est_probs = network(frames, masks, optical_flows, n_objects,
+                                    cfg.TEST.MEMORIZE_EVERY, device)
+                est_probs = est_probs.permute(0, 2, 1, 3, 4)
+                masks = torch.argmax(masks, dim=2)
+                est_masks = torch.argmax(est_probs, dim=1)
+            except Exception as ex:
+                logging.warn('Error occurred during testing Checkpoint[Name=%s]: %s' %
+                             (checkpoint, ex))
+                continue
+
+            metrics = Metrics.get(est_masks[0], masks[0])
+            test_metrics.update(metrics, n_objects[0].item())
+
+    jf_mean = test_metrics.avg(2)
+    if jf_mean != 0:
+        logging.info('Checkpoint[Name=%s] has been tested successfully, JF-Mean = %.4f.' %
+                     (checkpoint, jf_mean))
+    else:
+        logging.warning('Exception occurred during testing Checkpoint[Name=%s]' % checkpoint)
+
+    result_set['JF-Mean'] = jf_mean
 
 
 def get_checkpoints(checkpoints_dir, remote_checkpoints_url, tested_checkpoints):
@@ -106,32 +156,6 @@ def get_next_checkpoints(tested_checkpoints, now_checkpoints):
             return nc
 
     return None
-
-
-def find_nth(haystack, needle, n):
-    start = haystack.find(needle)
-    while start >= 0 and n > 1:
-        start = haystack.find(needle, start + len(needle))
-        n -= 1
-
-    return start
-
-
-def get_jf_mean(process, checkpoint):
-    try:
-        logs = process.stdout.read().decode('utf-8').split('\n')
-        for log in logs:
-            if log.find('[WARNING]') != -1:
-                logging.warning(log[find_nth(log, ' ', 3) + 1:])
-            elif log.find('[Test Summary]') != -1:
-                last_comma = log.rfind(',')
-                last_quot_mark = log.rfind('\'')
-                return float(log[last_comma + 3:last_quot_mark])
-    except Exception as ex:
-        logging.warning(ex)
-
-    logging.warning('Failed to parse test logs for checkpoint[Name=%s].' % checkpoint)
-    return 0
 
 
 def main():
@@ -165,39 +189,34 @@ def main():
     test_writer = get_summary_writer(log_dir, args.pavi)
     logging.info('Tensorborad Logs available at: %s' % log_dir)
 
-    # Detect available GPUs
-    free_gpus = get_assigned_gpus(args.gpu)
-    logging.info('Availble GPUs: %s' % free_gpus)
+    # Read config.py
+    exec(compile(open(args.cfg, "rb").read(), args.cfg, 'exec'))
+    cfg = locals()['__C']
+    cfg.DATASETS.DAVIS.INDEXING_FILE_PATH = os.path.abspath(
+        os.path.join(PROJECT_HOME, cfg.DATASETS.DAVIS.INDEXING_FILE_PATH))
+
+    # Initialize networks on assigned GPUs
+    free_networks = get_networks(cfg)
 
     # Detect new checkpoints
     best_jf_mean = 0
     best_checkpoint = None
-    running_processes = []
+    running_threads = []
     tested_checkpoints = []
     test_results_buffer = OrderedDict()
     logging.info("Listening new checkpoints at %s ..." % args.ckpt_dir)
 
     while True:
         # Waiting for free GPUs & Processing test results
-        while len(free_gpus) == 0:
+        while len(free_networks) == 0:
             time.sleep(15)    # Detect free gpus every 15 seconds
-            for rp in running_processes:
-                if rp['process'].poll() is not None:
-                    free_gpus.append(rp['gpu'])
-                    running_processes.remove(rp)
-                    # Parse the JF-Mean from test logs
-                    jf_mean = get_jf_mean(rp['process'], rp['checkpoint'])
-                    if jf_mean != 0:
-                        logging.info(
-                            'Checkpoint[Name=%s] has been tested successfully, JF-Mean = %.4f.' %
-                            (rp['checkpoint'], jf_mean))
-                    else:
-                        logging.warning('Exception occurred during testing Checkpoint[Name=%s]' %
-                                        rp['checkpoint'])
-                        continue
-
+            for rt in running_threads:
+                if not rt['thread'].is_alive():
+                    running_threads.remove(rt)
+                    free_networks.append(rt['network'])
+                    jf_mean = rt['result_set']['JF-Mean']
                     # Add the results to the TensorBoard
-                    test_results_buffer[rp["checkpoint"]] = jf_mean
+                    test_results_buffer[rt["checkpoint"]] = jf_mean
                     test_results_buffer = add_scalars(test_writer, test_results_buffer)
                     # Update the best results
                     if jf_mean > best_jf_mean:
@@ -205,9 +224,9 @@ def main():
                             os.remove(os.path.join(args.ckpt_dir, best_checkpoint))
 
                         best_jf_mean = jf_mean
-                        best_checkpoint = rp['checkpoint']
+                        best_checkpoint = rt['checkpoint']
                     elif jf_mean != 0:
-                        os.remove(os.path.join(args.ckpt_dir, rp['checkpoint']))
+                        os.remove(os.path.join(args.ckpt_dir, rt['checkpoint']))
 
         # Waiting for new checkpoints
         checkpoints = get_checkpoints(args.ckpt_dir, args.remote, tested_checkpoints)
@@ -216,24 +235,24 @@ def main():
             time.sleep(30)    # Detect new checkpoints every 30 seconds
             continue
 
-        assigned_gpu = free_gpus.pop(0)
-        logging.info('Assign GPU[ID=%s] for the checkpoint[Name=%s].' % (assigned_gpu, checkpoint))
-        process = subprocess.Popen(
-            [
-                "python", "runner.py", "--test", "--weights",
-                os.path.join(args.ckpt_dir, checkpoint), "--gpu",
-                str(assigned_gpu), "--cfg",
-                str(args.cfg)
-            ],
-            cwd=os.path.abspath(os.pardir),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)  # yapf: disable
+        assigned_network = free_networks.pop(0)
+        logging.info('Assign GPU[ID=%s] for the checkpoint[Name=%s].' %
+                     (assigned_network['device'], checkpoint))
+        result_set = {'JF-Mean': 0}
+        worker_thread = threading.Thread(target=test_network,
+                                         args=(cfg,
+                                               assigned_network['network'],
+                                               assigned_network['data_loader'],
+                                               os.path.join(args.ckpt_dir, checkpoint),
+                                               result_set))  # yapf: disable
+        worker_thread.start()
 
         # Add the process to the checklist
-        running_processes.append({
-            'process': process,
-            'gpu': assigned_gpu,
-            'checkpoint': checkpoint
+        running_threads.append({
+            'thread': worker_thread,
+            'network': assigned_network,
+            'checkpoint': checkpoint,
+            'result_set': result_set
         })
 
         # Remember the tested checkpoint

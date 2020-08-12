@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-08 17:10:49
+# @Last Modified time: 2020-08-12 16:27:29
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -191,7 +191,7 @@ class STM(torch.nn.Module):
 
         for mem in mems:
             _, C, H, W = mem.size()
-            pad_mem = utils.helpers.var_or_cuda(torch.zeros(B, K, C, 1, H, W))
+            pad_mem = utils.helpers.var_or_cuda(torch.zeros(B, K, C, 1, H, W), mem.device)
             for i in range(B):
                 begin = sum(n_objects[:i])
                 end = begin + n_objects[i]
@@ -344,12 +344,13 @@ class STM(torch.nn.Module):
         # print(logit.shape)    # torch.Size([bs, n_objects, 480, 912])
         return logit
 
-    def forward(self, frames, masks, optical_flows, n_objects, memorize_every):
+    def forward(self, frames, masks, optical_flows, n_objects, memorize_every, device=None):
         batch_size, n_frames, _, h, w = frames.size()
         k = masks.size(2)
         est_masks = torch.zeros(batch_size, n_frames, k, h, w).float()
         # Fix Assertion Error:  all(map(lambda i: i.is_cuda, inputs))
-        if torch.cuda.device_count() > 1:
+        # The value of device is set in utils/eval_server.py for full set evaluation
+        if torch.cuda.device_count() > 1 and device is None:
             est_masks = utils.helpers.var_or_cuda(est_masks)
 
         keys = None
@@ -359,8 +360,9 @@ class STM(torch.nn.Module):
         to_memorize = [j for j in range(0, n_frames, memorize_every)]
         for t in range(1, n_frames):
             # Memorize
-            prev_mask = utils.helpers.var_or_cuda(est_masks[:, t - 1])
-            prev_key, prev_value = self.memorize(frames[:, t - 1], prev_mask, n_objects)
+            prev_mask = utils.helpers.var_or_cuda(est_masks[:, t - 1], device)
+            prev_frame = utils.helpers.var_or_cuda(frames[:, t - 1], device)
+            prev_key, prev_value = self.memorize(prev_frame, prev_mask, n_objects)
             if t - 1 == 0:
                 this_keys, this_values = prev_key, prev_value
             else:
@@ -371,7 +373,8 @@ class STM(torch.nn.Module):
                 keys, values = this_keys, this_values
 
             # Segment
-            logit = self.segment(frames[:, t], this_keys, this_values, n_objects)
+            curr_frame = utils.helpers.var_or_cuda(frames[:, t], device)
+            logit = self.segment(curr_frame, this_keys, this_values, n_objects)
             est_masks[:, t] = F.softmax(logit, dim=1)
 
         return est_masks
