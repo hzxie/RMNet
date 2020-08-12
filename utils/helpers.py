@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-09 14:18:36
+# @Last Modified time: 2020-08-12 11:12:29
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -13,10 +13,13 @@ import torch.nn.functional as F
 from PIL import Image
 
 
-def var_or_cuda(x):
+def var_or_cuda(x, device=None):
     x = x.contiguous()
     if torch.cuda.is_available():
-        x = x.cuda(non_blocking=True)
+        if device is None:
+            x = x.cuda(non_blocking=True)
+        else:
+            x = x.cuda(device=device, non_blocking=True)
 
     return x
 
