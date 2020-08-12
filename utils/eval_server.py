@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-08-08 17:16:07
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-12 17:45:08
+# @Last Modified time: 2020-08-12 20:51:17
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -19,6 +19,7 @@ import threading
 
 from bs4 import BeautifulSoup
 from collections import OrderedDict
+from tqdm import tqdm
 
 # Add STM project to sys path
 PROJECT_HOME = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
@@ -47,16 +48,6 @@ def get_args_from_command_line():
         type=str)
     args = parser.parse_args()
     return args
-
-
-def get_summary_writer(log_dir, pavi_project_name):
-    if pavi_project_name is None:
-        import tensorboardX
-        return tensorboardX.SummaryWriter(log_dir)
-    else:
-        import pavi
-        _ = log_dir.split('/')
-        return pavi.SummaryWriter(task=_[-2], labels=_[-1], project=pavi_project_name)
 
 
 def add_scalars(summary_writer, scalars):
@@ -102,9 +93,14 @@ def test_network(cfg, network, data_loader, checkpoint, result_set):
     network.load_state_dict(_checkpoint)
     network.eval()
 
+    checkpoint = os.path.basename(checkpoint)
     test_metrics = AverageMeter(Metrics.names())
     device, = list(set(p.device for p in network.parameters()))
-    for idx, (video_name, n_objects, frames, masks, optical_flows) in enumerate(data_loader):
+    for idx, (video_name, n_objects, frames, masks, optical_flows) in enumerate(
+            tqdm(data_loader,
+                 leave=False,
+                 desc='%s on GPU %d' % (checkpoint, device.index),
+                 position=device.index)):
         with torch.no_grad():
             try:
                 est_probs = network(frames, masks, optical_flows, n_objects,
