@@ -3,10 +3,11 @@
 # @Author: Haozhe Xie
 # @Date:   2020-08-08 17:16:07
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-12 17:01:05
+# @Last Modified time: 2020-08-12 17:45:08
 # @Email:  cshzxie@gmail.com
 
 import argparse
+import importlib
 import logging
 import os
 import requests
@@ -28,19 +29,16 @@ import utils.data_loaders
 from models.stm import STM
 from utils.average_meter import AverageMeter
 from utils.metrics import Metrics
+from utils.summary_writer import SummaryWriter
 
 
 def get_args_from_command_line():
     parser = argparse.ArgumentParser(description='The argument parser of eval_server')
-    parser.add_argument('ckpt_dir', help='The path to folder that saves checkpoints')
-    parser.add_argument('--cfg', help='The path to config file', default='config.py', type=str)
-    parser.add_argument('--gpu',
-                        help='The GPU IDs to use (None for auto detection)',
-                        default=None,
-                        type=str)
-    parser.add_argument('--pavi',
-                        help='The project name in PAVI (None for disabling PAVI)',
-                        default=None,
+    parser.add_argument('--exp', dest='exp_name', help='Experiment Name', default=None)
+    parser.add_argument('--cfg',
+                        dest='cfg_file',
+                        help='The path to config file',
+                        default='config.py',
                         type=str)
     parser.add_argument(
         '--remote',
@@ -161,7 +159,24 @@ def get_next_checkpoints(tested_checkpoints, now_checkpoints):
 def main():
     # Get args from command line
     args = get_args_from_command_line()
-    if args.remote is not None:
+
+    # Read config.py
+    if not os.path.exists(args.cfg_file):
+        logging.error('The config[Path=%s] does not exist.' % args.cfg_file)
+        sys.exit(2)
+
+    exec(compile(open(args.cfg_file, "rb").read(), args.cfg_file, 'exec'))
+    cfg = locals()['__C']
+    cfg.DATASETS.DAVIS.INDEXING_FILE_PATH = os.path.abspath(
+        os.path.join(PROJECT_HOME, cfg.DATASETS.DAVIS.INDEXING_FILE_PATH))
+    cfg.DIR.OUT_PATH = os.path.abspath(os.path.join(PROJECT_HOME, cfg.DIR.OUT_PATH))
+
+    # Set up the exp_name
+    cfg.CONST.EXP_NAME = args.exp_name
+    if args.exp_name is None and args.remote is None:
+        logging.error('Either exp_name or remote should be specified. See --help for details.')
+        sys.exit(127)
+    elif args.remote is not None:
         try:
             response = requests.get(args.remote)
             if response.status_code != 200:
@@ -170,30 +185,26 @@ def main():
             logging.error(ex)
             sys.exit(127)
 
-        ckpt_name = args.remote[args.remote.rfind('/') + 1:]
-        args.ckpt_dir = args.ckpt_dir if args.ckpt_dir.find(ckpt_name) != -1 else os.path.join(
-            args.ckpt_dir, ckpt_name)
-        if not os.path.exists(args.ckpt_dir):
-            os.makedirs(args.ckpt_dir)
+        cfg.CONST.EXP_NAME = args.remote[args.remote.rstrip('/').rfind('/') + 1:]
 
-    if not os.path.exists(args.ckpt_dir):
-        logging.error('The checkpoints folder[Path=%s] does not exist.' % args.ckpt_dir)
+    # Set up the checkpoint folder
+    output_dir = os.path.join(cfg.DIR.OUT_PATH, '%s', cfg.CONST.EXP_NAME)
+    cfg.DIR.CHECKPOINTS = output_dir % 'checkpoints'
+    if not os.path.exists(cfg.DIR.CHECKPOINTS) and args.remote is None:
+        logging.error('The checkpoints folder[Path=%s] does not exist.' % cfg.DIR.CHECKPOINTS)
         sys.exit(2)
-    else:
-        args.ckpt_dir = os.path.abspath(args.ckpt_dir)
-        args.cfg = os.path.abspath(args.cfg)
-        logging.info('Evaluation server started.')
+    elif not os.path.exists(cfg.DIR.CHECKPOINTS):
+        # Create checkpoints folder to sync checkpoints from remote servers
+        os.makedirs(cfg.DIR.CHECKPOINTS)
 
+    logging.info('Evaluation server started.')
     # Set up new summary writer
-    log_dir = os.path.join(args.ckpt_dir.replace('checkpoints', 'logs'), 'val')
-    test_writer = get_summary_writer(log_dir, args.pavi)
-    logging.info('Tensorborad Logs available at: %s' % log_dir)
-
-    # Read config.py
-    exec(compile(open(args.cfg, "rb").read(), args.cfg, 'exec'))
-    cfg = locals()['__C']
-    cfg.DATASETS.DAVIS.INDEXING_FILE_PATH = os.path.abspath(
-        os.path.join(PROJECT_HOME, cfg.DATASETS.DAVIS.INDEXING_FILE_PATH))
+    cfg.DIR.LOGS = output_dir % 'logs'
+    test_writer = SummaryWriter(cfg, 'val')
+    if cfg.PAVI.ENABLED:
+        logging.info('Logs available at PAVI: http://pavi.parrots.sensetime.com/#/task?tag=val')
+    else:
+        logging.info('Logs available at TensorBoard[Folder=%s]' % cfg.DIR.LOGS)
 
     # Initialize networks on assigned GPUs
     free_networks = get_networks(cfg)
@@ -204,7 +215,7 @@ def main():
     running_threads = []
     tested_checkpoints = []
     test_results_buffer = OrderedDict()
-    logging.info("Listening new checkpoints at %s ..." % args.ckpt_dir)
+    logging.info("Listening new checkpoints at %s ..." % cfg.DIR.CHECKPOINTS)
 
     while True:
         # Waiting for free GPUs & Processing test results
@@ -221,15 +232,15 @@ def main():
                     # Update the best results
                     if jf_mean > best_jf_mean:
                         if best_checkpoint is not None:
-                            os.remove(os.path.join(args.ckpt_dir, best_checkpoint))
+                            os.remove(os.path.join(cfg.DIR.CHECKPOINTS, best_checkpoint))
 
                         best_jf_mean = jf_mean
                         best_checkpoint = rt['checkpoint']
                     elif jf_mean != 0:
-                        os.remove(os.path.join(args.ckpt_dir, rt['checkpoint']))
+                        os.remove(os.path.join(cfg.DIR.CHECKPOINTS, rt['checkpoint']))
 
         # Waiting for new checkpoints
-        checkpoints = get_checkpoints(args.ckpt_dir, args.remote, tested_checkpoints)
+        checkpoints = get_checkpoints(cfg.DIR.CHECKPOINTS, args.remote, tested_checkpoints)
         checkpoint = get_next_checkpoints(tested_checkpoints, checkpoints)
         if checkpoint is None:
             time.sleep(30)    # Detect new checkpoints every 30 seconds
@@ -243,7 +254,7 @@ def main():
                                          args=(cfg,
                                                assigned_network['network'],
                                                assigned_network['data_loader'],
-                                               os.path.join(args.ckpt_dir, checkpoint),
+                                               os.path.join(cfg.DIR.CHECKPOINTS, checkpoint),
                                                result_set))  # yapf: disable
         worker_thread.start()
 
@@ -265,6 +276,7 @@ if __name__ == '__main__':
     if sys.version_info < (3, 0):
         raise Exception('Please use Python 3.x')
 
+    importlib.reload(logging)
     logging.basicConfig(format='[%(levelname)s] %(asctime)s %(message)s')
     logging.getLogger().setLevel(logging.INFO)
 
