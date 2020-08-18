@@ -1,13 +1,11 @@
 argparse
 easydict
 numpy
+opencv-python
 pillow
-pprint
 scikit-image
 scipy
 torch >= 1.0.0
-torchvision
-tensorboardX==1.2
+torchvision >= 0.3.0
+tensorboardX
 tqdm
-
-git+https://github.com/zhanghang1989/ResNeSt
