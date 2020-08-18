@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-11 19:57:54
+# @Last Modified time: 2020-08-18 17:50:05
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -18,6 +18,7 @@ from time import time
 
 from core.test import test_net
 from models.stm import STM
+from models.focal_loss import FocalLoss
 from models.lovasz_loss import LovaszLoss
 from utils.average_meter import AverageMeter
 from utils.metrics import Metrics
@@ -71,7 +72,7 @@ def train_net(cfg):
                                                         gamma=cfg.TRAIN.GAMMA)
 
     # Set up loss functions
-    nll_loss = torch.nn.NLLLoss(ignore_index=cfg.CONST.IGNORE_IDX)
+    nll_loss = FocalLoss(top_k=cfg.TRAIN.FOCAL_LOSS_TOP_K, ignore_index=cfg.CONST.IGNORE_IDX)
     lovasz_loss = LovaszLoss(ignore_index=cfg.CONST.IGNORE_IDX)
 
     # Load the pretrained model if exists
@@ -102,6 +103,8 @@ def train_net(cfg):
 
     # Training/Testing the network
     losses = AverageMeter()
+    n_batches = len(train_data_loader)
+    total_itr = cfg.TRAIN.N_EPOCHS * n_batches
     for epoch_idx in range(init_epoch + 1, cfg.TRAIN.N_EPOCHS + 1):
         epoch_start_time = time()
 
@@ -116,16 +119,23 @@ def train_net(cfg):
 
         # Update frame step
         if cfg.TRAIN.USE_RANDOM_FRAME_STEPS:
-            max_frame_steps = random.randint(1, min(cfg.TRAIN.MAX_FRAME_STEPS, epoch_idx // 5 + 2))
+            if epoch_idx + 25 >= cfg.TRAIN.N_EPOCHS:
+                # Keep the frame step == 1 for the last 25 epochs
+                max_frame_steps = 1
+            else:
+                max_frame_steps = random.randint(
+                    1, min(cfg.TRAIN.MAX_FRAME_STEPS, epoch_idx // 5 + 2))
+
             train_data_loader.dataset.set_frame_step(random.randint(1, max_frame_steps))
             logging.info('[Epoch %d/%d] Set frame step to %d' %
                          (epoch_idx, cfg.TRAIN.N_EPOCHS, train_data_loader.dataset.frame_step))
 
         batch_end_time = time()
-        n_batches = len(train_data_loader)
         for batch_idx, (video_name, n_objects, frames, masks,
                         optical_flows) in enumerate(train_data_loader):
+            n_itr = (epoch_idx - 1) * n_batches + batch_idx
             data_time.update(time() - batch_end_time)
+
             try:
                 frames = utils.helpers.var_or_cuda(frames)
                 masks = utils.helpers.var_or_cuda(masks)
@@ -134,18 +144,16 @@ def train_net(cfg):
                 est_probs = stm(frames, masks, optical_flows, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
                 est_probs = utils.helpers.var_or_cuda(est_probs[:, 1:]).permute(0, 2, 1, 3, 4)
                 masks = torch.argmax(masks[:, 1:], dim=2)
-                loss = nll_loss(torch.log(est_probs), masks) + lovasz_loss(est_probs, masks)
-
+                loss = lovasz_loss(est_probs, masks) + nll_loss(torch.log(est_probs), masks,
+                                                                n_itr / total_itr)
                 losses.update(loss.item())
                 stm.zero_grad()
                 loss.backward()
                 optimizer.step()
             except Exception as ex:
                 logging.warn(ex)
-                torch.cuda.empty_cache()
                 continue
 
-            n_itr = (epoch_idx - 1) * n_batches + batch_idx
             train_writer.add_scalar('Loss/Batch', loss.item(), n_itr)
 
             batch_time.update(time() - batch_end_time)
