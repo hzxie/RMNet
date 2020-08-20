@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-08-18 16:42:37
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-18 17:45:17
+# @Last Modified time: 2020-08-20 17:17:03
 # @Email:  cshzxie@gmail.com
 
 import torch.nn
@@ -19,9 +19,8 @@ class FocalLoss(torch.nn.Module):
         B, K, N, H, W = input.shape
         step_percent = min(step_percent, 1.0)
 
-        input = input.view(B * N, K, H * W)
-        target = target.view(B * N, H * W)
-
+        input = input.permute(0, 2, 1, 3, 4).reshape(B * N, K, H * W)
+        target = target.reshape(B * N, H * W)
         nll_loss = F.nll_loss(input, target, ignore_index=self.ignore_index, reduction='none')
 
         n_pixels = H * W

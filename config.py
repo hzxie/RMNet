@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-18 17:51:15
+# @Last Modified time: 2020-08-20 17:27:58
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -104,9 +104,9 @@ __C.TRAIN.LR_MILESTONES                          = [100]
 __C.TRAIN.GAMMA                                  = .5
 __C.TRAIN.BETAS                                  = (.9, .999)
 __C.TRAIN.WEIGHT_DECAY                           = 5e-6
+__C.TRAIN.FOCAL_LOSS_TOP_K                       = 0.15
 __C.TRAIN.CKPT_SAVE_FREQ                         = 1
 __C.TRAIN.CKPT_SAVE_THRESHOLD                    = 0.71
-__C.TRAIN.FOCAL_LOSS_TOP_K                       = 0.15
 __C.TRAIN.MEMORIZE_EVERY                         = 1
 __C.TRAIN.AUGMENTATION                           = edict()
 __C.TRAIN.AUGMENTATION.RESIZE_SIZE               = 480
