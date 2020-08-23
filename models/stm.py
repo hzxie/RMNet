@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-12 16:27:29
+# @Last Modified time: 2020-08-23 10:41:13
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -17,6 +17,8 @@ import torch.nn.functional as F
 import torchvision.models
 
 import utils.helpers
+
+from extensions.dist_matrix import DistanceMatrix
 
 
 class ResBlock(torch.nn.Module):
@@ -178,12 +180,14 @@ class KeyValue(torch.nn.Module):
 class STM(torch.nn.Module):
     def __init__(self, cfg):
         super(STM, self).__init__()
+        self.cfg = cfg
         self.encoder_memory = EncoderMemory()
         self.encoder_query = EncoderQuery()
         self.kv_memory = KeyValue(1024, keydim=128, valdim=512)
         self.kv_query = KeyValue(1024, keydim=128, valdim=512)
         self.memory = MemoryReader()
         self.decoder = Decoder(256, [2, 4, 8])
+        self.dist_matrix = DistanceMatrix()
 
     def pad_memory(self, mems, n_objects, K):
         pad_mems = []
@@ -260,11 +264,44 @@ class STM(torch.nn.Module):
         # print(v4.shape)       # torch.Size([bs, n_objects, 512, 1, 30, 57])
         return k4, v4
 
+    def warp(self, img, flow):
+        # References:
+        # - https://github.com/NVlabs/PWC-Net/blob/master/PyTorch/models/PWCNet.py#L139
+        B, C, H, W = img.size()
+
+        x_axis = torch.arange(0, W).view(1, -1).repeat(H, 1)
+        y_axis = torch.arange(0, H).view(-1, 1).repeat(1, W)
+        x_axis = x_axis.view(1, 1, H, W).repeat(B, 1, 1, 1)
+        y_axis = y_axis.view(1, 1, H, W).repeat(B, 1, 1, 1)
+        grid = torch.cat((x_axis, y_axis), 1).float()
+
+        grid = utils.helpers.var_or_cuda(grid, img.device)
+        vgrid = grid + flow
+        # scale grid to [-1,1]
+        vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :].clone() / max(W - 1, 1) - 1.0
+        vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(H - 1, 1) - 1.0
+
+        vgrid = vgrid.permute(0, 2, 3, 1)
+        output = F.grid_sample(img, vgrid, align_corners=True)
+        mask = utils.helpers.var_or_cuda(torch.ones(img.size()), img.device)
+        mask = F.grid_sample(mask, vgrid, align_corners=True)
+
+        mask[mask < 0.9999] = 0
+        mask[mask > 0] = 1
+
+        output = output * mask
+        return output
+
+    def get_dist_matrix(self, prev_mask, flow):
+        _, K, _, _ = prev_mask.shape
+        expt_mask = self.warp(prev_mask, flow)
+        return self.dist_matrix(expt_mask), expt_mask
+
     def soft_aggregation(self, ps, K, n_objects):
         B = len(n_objects)
         _, H, W = ps.shape
 
-        em = utils.helpers.var_or_cuda(torch.zeros(B, K, H, W))
+        em = utils.helpers.var_or_cuda(torch.zeros(B, K, H, W), ps.device)
         for i in range(B):
             begin = sum(n_objects[:i])
             end = begin + n_objects[i]
@@ -275,10 +312,11 @@ class STM(torch.nn.Module):
         logit = torch.log((em / (1 - em)))
         return logit
 
-    def segment(self, frame, keys, values, n_objects):
+    def segment(self, frame, dist_matrix, keys, values, n_objects):
         B, K, keydim, T, H, W = keys.shape
         # print(frame.shape)    # torch.Size([bs, 3, 480, 910])
-        [frame], pad = self.pad_divide_by([frame], 16, (frame.size()[2], frame.size()[3]))
+        (frame, dist_matrix), pad = self.pad_divide_by([frame, dist_matrix], 16,
+                                                       (frame.size()[2], frame.size()[3]))
         # print(frame.shape)    # torch.Size([bs, 3, 480, 912])
         # print(pad)            # (1, 1, 0, 0)
         r4, r3, r2, _, _ = self.encoder_query(frame)
@@ -363,6 +401,7 @@ class STM(torch.nn.Module):
             prev_mask = utils.helpers.var_or_cuda(est_masks[:, t - 1], device)
             prev_frame = utils.helpers.var_or_cuda(frames[:, t - 1], device)
             prev_key, prev_value = self.memorize(prev_frame, prev_mask, n_objects)
+
             if t - 1 == 0:
                 this_keys, this_values = prev_key, prev_value
             else:
@@ -374,7 +413,10 @@ class STM(torch.nn.Module):
 
             # Segment
             curr_frame = utils.helpers.var_or_cuda(frames[:, t], device)
-            logit = self.segment(curr_frame, this_keys, this_values, n_objects)
+            curr_flow = utils.helpers.var_or_cuda(optical_flows[:, t - 1], device)
+            dist_mtx, expt_mask = self.get_dist_matrix(prev_mask, -curr_flow)
+
+            logit = self.segment(curr_frame, dist_mtx, this_keys, this_values, n_objects)
             est_masks[:, t] = F.softmax(logit, dim=1)
 
         return est_masks
