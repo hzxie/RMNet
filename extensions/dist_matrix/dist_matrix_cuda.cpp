@@ -2,11 +2,9 @@
  * @Author: Haozhe Xie
  * @Date:   2020-08-14 17:20:32
  * @Last Modified by:   Haozhe Xie
- * @Last Modified time: 2020-08-23 09:08:54
+ * @Last Modified time: 2020-08-24 19:47:30
  * @Email:  cshzxie@gmail.com
  */
-
-#include <vector>
 
 #include <ATen/cuda/CUDAContext.h>
 #include <torch/extension.h>
@@ -32,5 +30,5 @@ torch::Tensor dist_matrix_forward(torch::Tensor expt_mask,
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  m.def("forward", &dist_matrix_forward, "Motion Attention forward (CUDA)");
+  m.def("forward", &dist_matrix_forward, "Distance Matrix forward (CUDA)");
 }

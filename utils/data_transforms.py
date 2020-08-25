@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-09 12:24:56
+# @Last Modified time: 2020-08-25 15:49:59
 # @Email:  cshzxie@gmail.com
 
 import cv2
@@ -221,8 +221,8 @@ class RandomCrop(object):
                                                 x_min:x_min + self.width, :]
             # Update the values of optical flow
             if i > 0:
-                optical_flows[i - 1][..., 0] += prev_x_min - x_min
-                optical_flows[i - 1][..., 1] += prev_y_min - y_min
+                optical_flows[i][..., 0] -= prev_x_min - x_min
+                optical_flows[i][..., 1] -= prev_y_min - y_min
 
             prev_x_min = x_min
             prev_y_min = y_min
@@ -278,13 +278,12 @@ class RandomAffine(object):
             masks[idx] = self._affine(m, tr_matrix, fillcolor=self.mask_fill_color)
 
         for idx, of in enumerate(optical_flows):
-            # Skip the last frame
-            if idx == len(optical_flows) - 1:
+            # Skip the first frame
+            if idx == 0:
                 continue
-
             # Update the optical flow values
             optical_flows[idx] = flow_affine_transformation.update_optical_flow(
-                of, tr_matices[idx], tr_matices[idx + 1])
+                of, tr_matices[idx - 1], tr_matices[idx])
             optical_flows[idx] = self._affine(optical_flows[idx],
                                               tr_matices[idx],
                                               fillcolor=tuple(self.optical_flow_fill_color))

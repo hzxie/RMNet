@@ -2,7 +2,7 @@
  * @Author: Haozhe Xie
  * @Date:   2020-08-07 10:37:26
  * @Last Modified by:   Haozhe Xie
- * @Last Modified time: 2020-08-08 16:58:12
+ * @Last Modified time: 2020-08-25 15:59:34
  * @Email:  cshzxie@gmail.com
  *
  * References:
@@ -13,8 +13,8 @@
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
-#include <cmath>
 #include <Python.h>
+#include <cmath>
 #include <numpy/arrayobject.h>
 
 // Initialize Numpy and make sure that be called only once.
@@ -63,21 +63,21 @@ static PyObject *updateOpticalFlow(PyObject *self, PyObject *args) {
     for (size_t j = 0; j < width; ++j) {
       // NOTE: i -> Y; j -> X
       size_t ofArrayIndex = (i * width + j) * 2;
-      float srcX = std::round(trMatrix1[0] * j + trMatrix1[1] * i + trMatrix1[2]);
-      float srcY = std::round(trMatrix1[3] * j + trMatrix1[4] * i + trMatrix1[5]);
+      float x2 = std::round(trMatrix2[0] * j + trMatrix2[1] * i + trMatrix2[2]);
+      float y2 = std::round(trMatrix2[3] * j + trMatrix2[4] * i + trMatrix2[5]);
 
-      float dstX = j + opticalFlow[ofArrayIndex];
-      float dstY = i + opticalFlow[ofArrayIndex + 1];
-      dstX = std::round(trMatrix2[0] * dstX + trMatrix2[1] * dstY + trMatrix2[2]);
-      dstY = std::round(trMatrix2[3] * dstX + trMatrix2[4] * dstY + trMatrix2[5]);
+      float x1 = j + opticalFlow[ofArrayIndex];
+      float y1 = i + opticalFlow[ofArrayIndex + 1];
+      x1 = std::round(trMatrix1[0] * x1 + trMatrix1[1] * y1 + trMatrix1[2]);
+      y1 = std::round(trMatrix1[3] * x1 + trMatrix1[4] * y1 + trMatrix1[5]);
 
-      srcX = srcX < 0 ? 0 : (srcX >= width ? width - 1 : srcX);
-      srcY = srcY < 0 ? 0 : (srcY >= height ? height - 1 : srcY);
-      dstX = srcX < 0 ? 0 : (dstX >= width ? width - 1 : dstX);
-      dstY = dstY < 0 ? 0 : (dstY >= height ? height - 1 : dstY);
+      x1 = x1 < 0 ? 0 : (x1 >= width ? width - 1 : x1);
+      y1 = y1 < 0 ? 0 : (y1 >= height ? height - 1 : y1);
+      x2 = x2 < 0 ? 0 : (x2 >= width ? width - 1 : x2);
+      y2 = y2 < 0 ? 0 : (y2 >= height ? height - 1 : y2);
 
-      newOpticalFlow[ofArrayIndex] = dstX - srcX;
-      newOpticalFlow[ofArrayIndex + 1] = dstY - srcY;
+      newOpticalFlow[ofArrayIndex] = x1 - x2;
+      newOpticalFlow[ofArrayIndex + 1] = y1 - y2;
     }
   }
   return PyArray_Return(newOpticalFlowArrObj);

@@ -2,22 +2,21 @@
  * @Author: Haozhe Xie
  * @Date:   2020-08-14 17:22:12
  * @Last Modified by:   Haozhe Xie
- * @Last Modified time: 2020-08-23 09:10:18
+ * @Last Modified time: 2020-08-24 21:06:27
  * @Email:  cshzxie@gmail.com
  */
 
-#include <climits>
 #include <iostream>
 #include <torch/types.h>
 
 #define CUDA_NUM_THREADS 512
 
-__global__ void dist_matrix_kernel(int n_objects, int height, int width,
-                                   const float prob_threshold,
-                                   const float *__restrict__ mask,
-                                   int *__restrict__ bboxes,
-                                   int *__restrict__ n_points,
-                                   float *__restrict__ dist_matrix) {
+__global__ void dist_matrix_forward_kernel(int n_objects, int height, int width,
+                                           const float prob_threshold,
+                                           const float *__restrict__ mask,
+                                           int *__restrict__ bboxes,
+                                           int *__restrict__ n_points,
+                                           float *__restrict__ dist_matrix) {
   int batch_index = blockIdx.x;
   int thread_index = threadIdx.x;
   int stride = blockDim.x;
@@ -92,16 +91,10 @@ torch::Tensor dist_matrix_cuda_forward(torch::Tensor mask, float prob_threshold,
   torch::Tensor dist_matrix = torch::zeros(
       {batch_size, n_objects, height, width}, torch::CUDA(torch::kFloat));
 
-  std::cout << "B: " << n_points << std::endl;
-  std::cout << "B: " << bboxes << std::endl;
-
-  dist_matrix_kernel<<<batch_size, CUDA_NUM_THREADS, 0, stream>>>(
+  dist_matrix_forward_kernel<<<batch_size, CUDA_NUM_THREADS, 0, stream>>>(
       n_objects, height, width, prob_threshold, mask.data_ptr<float>(),
       bboxes.data_ptr<int>(), n_points.data_ptr<int>(),
       dist_matrix.data_ptr<float>());
-
-  std::cout << "A: " << n_points << std::endl;
-  std::cout << "A: " << bboxes << std::endl;
 
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {

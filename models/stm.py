@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-23 10:41:13
+# @Last Modified time: 2020-08-25 16:00:57
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -290,12 +290,16 @@ class STM(torch.nn.Module):
         mask[mask > 0] = 1
 
         output = output * mask
-        return output
+        return output, mask.bool()
 
     def get_dist_matrix(self, prev_mask, flow):
         _, K, _, _ = prev_mask.shape
-        expt_mask = self.warp(prev_mask, flow)
-        return self.dist_matrix(expt_mask), expt_mask
+        expt_mask, occ_mask = self.warp(prev_mask, flow)
+        dist_matrix = self.dist_matrix(expt_mask)
+        # Make the distance == 0 for occluded regions
+        dist_matrix[occ_mask == 0] = 0
+
+        return dist_matrix, expt_mask
 
     def soft_aggregation(self, ps, K, n_objects):
         B = len(n_objects)
@@ -413,8 +417,8 @@ class STM(torch.nn.Module):
 
             # Segment
             curr_frame = utils.helpers.var_or_cuda(frames[:, t], device)
-            curr_flow = utils.helpers.var_or_cuda(optical_flows[:, t - 1], device)
-            dist_mtx, expt_mask = self.get_dist_matrix(prev_mask, -curr_flow)
+            curr_flow = utils.helpers.var_or_cuda(optical_flows[:, t], device)
+            dist_mtx, expt_mask = self.get_dist_matrix(prev_mask, curr_flow)
 
             logit = self.segment(curr_frame, dist_mtx, this_keys, this_values, n_objects)
             est_masks[:, t] = F.softmax(logit, dim=1)
