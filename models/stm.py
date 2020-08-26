@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-25 16:00:57
+# @Last Modified time: 2020-08-26 09:43:53
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -339,13 +339,19 @@ class STM(torch.nn.Module):
             'value': [],
         }
         for i in range(B):
-            # expand to ---  no, c, h, w
-            _k4e = k4[i].expand(n_objects[i], -1, -1, -1)
-            _v4e = v4[i].expand(n_objects[i], -1, -1, -1)
-            _r3e = r3[i].expand(n_objects[i], -1, -1, -1)
-            _r2e = r2[i].expand(n_objects[i], -1, -1, -1)
             _key = keys[i, 1:n_objects[i] + 1]
             _value = values[i, 1:n_objects[i] + 1]
+            # Motion Attention from Distance Matrix
+            _dist_mtx = dist_matrix[i, 1:n_objects[i] + 1].unsqueeze(dim=1)
+            _k4e_dist_mtx = F.interpolate(_dist_mtx, scale_factor=1 / 16)
+            _v4e_dist_mtx = F.interpolate(_dist_mtx, scale_factor=1 / 16)
+            _r3e_dist_mtx = F.interpolate(_dist_mtx, scale_factor=1 / 8)
+            _r2e_dist_mtx = F.interpolate(_dist_mtx, scale_factor=1 / 4)
+            # expand to ---  no, c, h, w
+            _k4e = k4[i].expand(n_objects[i], -1, -1, -1) * _k4e_dist_mtx
+            _v4e = v4[i].expand(n_objects[i], -1, -1, -1) * _v4e_dist_mtx
+            _r3e = r3[i].expand(n_objects[i], -1, -1, -1) * _r3e_dist_mtx
+            _r2e = r2[i].expand(n_objects[i], -1, -1, -1) * _r2e_dist_mtx
             # print(_k4e.shape) # torch.Size([n_objects, 128, 30, 57])
             # print(_v4e.shape) # torch.Size([n_objects, 512, 30, 57])
             # print(_r3e.shape) # torch.Size([n_objects, 512, 60, 114])
