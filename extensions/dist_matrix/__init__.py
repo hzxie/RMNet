@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-08-17 09:06:16
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-26 09:43:58
+# @Last Modified time: 2020-08-27 14:48:26
 # @Email:  cshzxie@gmail.com
 
 import torch
@@ -26,6 +26,8 @@ class DistanceMatrix(torch.nn.Module):
     def __init__(self):
         super(DistanceMatrix, self).__init__()
 
-    def forward(self, mask, prob_threshold=0.5, scale_factor=0.1):
-        dist_mtx = torch.sqrt(DistanceMatrixFunction.apply(mask, prob_threshold)) * scale_factor
+    def forward(self, mask, prob_threshold=0.5, scale_factor=10):
+        dist_mtx = DistanceMatrixFunction.apply(mask, prob_threshold)
+        max_dist = torch.max(dist_mtx) + 1
+        dist_mtx = dist_mtx / max_dist * scale_factor
         return torch.sigmoid(-dist_mtx) * 2
