@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-18 17:50:05
+# @Last Modified time: 2020-08-27 11:36:41
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -63,16 +63,16 @@ def train_net(cfg):
         stm = torch.nn.DataParallel(stm).cuda()
 
     # Create the optimizers
-    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, stm.parameters()),
-                                 lr=cfg.TRAIN.LEARNING_RATE,
-                                 weight_decay=cfg.TRAIN.WEIGHT_DECAY,
-                                 betas=cfg.TRAIN.BETAS)
+    optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, stm.parameters()),
+                                  lr=cfg.TRAIN.LEARNING_RATE,
+                                  weight_decay=cfg.TRAIN.WEIGHT_DECAY,
+                                  betas=cfg.TRAIN.BETAS)
     lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                         milestones=cfg.TRAIN.LR_MILESTONES,
                                                         gamma=cfg.TRAIN.GAMMA)
 
     # Set up loss functions
-    nll_loss = FocalLoss(top_k=cfg.TRAIN.FOCAL_LOSS_TOP_K, ignore_index=cfg.CONST.IGNORE_IDX)
+    nll_loss = torch.nn.NLLLoss(ignore_index=cfg.CONST.IGNORE_IDX)
     lovasz_loss = LovaszLoss(ignore_index=cfg.CONST.IGNORE_IDX)
 
     # Load the pretrained model if exists
@@ -119,8 +119,8 @@ def train_net(cfg):
 
         # Update frame step
         if cfg.TRAIN.USE_RANDOM_FRAME_STEPS:
-            if epoch_idx + 25 >= cfg.TRAIN.N_EPOCHS:
-                # Keep the frame step == 1 for the last 25 epochs
+            if epoch_idx + cfg.TRAIN.LAST_N_EPOCHES_FIXING_FRAME_STEPS >= cfg.TRAIN.N_EPOCHS:
+                # Keep the frame step == 1 for the last several epochs
                 max_frame_steps = 1
             else:
                 max_frame_steps = random.randint(
@@ -144,8 +144,7 @@ def train_net(cfg):
                 est_probs = stm(frames, masks, optical_flows, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
                 est_probs = utils.helpers.var_or_cuda(est_probs[:, 1:]).permute(0, 2, 1, 3, 4)
                 masks = torch.argmax(masks[:, 1:], dim=2)
-                loss = lovasz_loss(est_probs, masks) + nll_loss(torch.log(est_probs), masks,
-                                                                n_itr / total_itr)
+                loss = lovasz_loss(est_probs, masks) + nll_loss(torch.log(est_probs), masks)
                 losses.update(loss.item())
                 stm.zero_grad()
                 loss.backward()

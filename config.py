@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-20 17:27:58
+# @Last Modified time: 2020-08-27 11:38:36
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -99,12 +99,12 @@ __C.TRAIN.N_MAX_FRAMES                           = 3
 __C.TRAIN.USE_RANDOM_FRAME_STEPS                 = True
 __C.TRAIN.USE_BATCH_NORM                         = False
 __C.TRAIN.MAX_FRAME_STEPS                        = 20
+__C.TRAIN.LAST_N_EPOCHES_FIXING_FRAME_STEPS      = 50
 __C.TRAIN.LEARNING_RATE                          = 1e-5
 __C.TRAIN.LR_MILESTONES                          = [100]
 __C.TRAIN.GAMMA                                  = .5
 __C.TRAIN.BETAS                                  = (.9, .999)
 __C.TRAIN.WEIGHT_DECAY                           = 5e-6
-__C.TRAIN.FOCAL_LOSS_TOP_K                       = 0.15
 __C.TRAIN.CKPT_SAVE_FREQ                         = 1
 __C.TRAIN.CKPT_SAVE_THRESHOLD                    = 0.71
 __C.TRAIN.MEMORIZE_EVERY                         = 1
