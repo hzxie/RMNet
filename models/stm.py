@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-26 09:43:53
+# @Last Modified time: 2020-08-28 09:44:58
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -264,40 +264,40 @@ class STM(torch.nn.Module):
         # print(v4.shape)       # torch.Size([bs, n_objects, 512, 1, 30, 57])
         return k4, v4
 
-    def warp(self, img, flow):
+    def warp(self, img0, flow):
         # References:
         # - https://github.com/NVlabs/PWC-Net/blob/master/PyTorch/models/PWCNet.py#L139
-        B, C, H, W = img.size()
+        B, C, H, W = img0.size()
 
         x_axis = torch.arange(0, W).view(1, -1).repeat(H, 1)
         y_axis = torch.arange(0, H).view(-1, 1).repeat(1, W)
         x_axis = x_axis.view(1, 1, H, W).repeat(B, 1, 1, 1)
         y_axis = y_axis.view(1, 1, H, W).repeat(B, 1, 1, 1)
         grid = torch.cat((x_axis, y_axis), 1).float()
-
-        grid = utils.helpers.var_or_cuda(grid, img.device)
+        grid = utils.helpers.var_or_cuda(grid, img0.device)
         vgrid = grid + flow
         # scale grid to [-1,1]
         vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :].clone() / max(W - 1, 1) - 1.0
         vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(H - 1, 1) - 1.0
 
         vgrid = vgrid.permute(0, 2, 3, 1)
-        output = F.grid_sample(img, vgrid, align_corners=True)
-        mask = utils.helpers.var_or_cuda(torch.ones(img.size()), img.device)
+        # Fix issue: one of the variables needed for gradient computation has been
+        # modified by an inplace operation
+        img1 = F.grid_sample(img0.clone(), vgrid, align_corners=True)
+        mask = utils.helpers.var_or_cuda(torch.ones(img0.size()), img0.device)
         mask = F.grid_sample(mask, vgrid, align_corners=True)
-
         mask[mask < 0.9999] = 0
         mask[mask > 0] = 1
 
-        output = output * mask
-        return output, mask.bool()
+        img1 = img1 * mask
+        return img1, mask
 
     def get_dist_matrix(self, prev_mask, flow):
         _, K, _, _ = prev_mask.shape
         expt_mask, occ_mask = self.warp(prev_mask, flow)
         dist_matrix = self.dist_matrix(expt_mask)
         # Make the distance == 0 for occluded regions
-        dist_matrix[occ_mask == 0] = 0
+        dist_matrix[occ_mask == 0] = 1
 
         return dist_matrix, expt_mask
 
@@ -337,21 +337,17 @@ class STM(torch.nn.Module):
             'r2e': [],
             'key': [],
             'value': [],
+            'dist_mtx': []
         }
         for i in range(B):
             _key = keys[i, 1:n_objects[i] + 1]
             _value = values[i, 1:n_objects[i] + 1]
-            # Motion Attention from Distance Matrix
             _dist_mtx = dist_matrix[i, 1:n_objects[i] + 1].unsqueeze(dim=1)
-            _k4e_dist_mtx = F.interpolate(_dist_mtx, scale_factor=1 / 16)
-            _v4e_dist_mtx = F.interpolate(_dist_mtx, scale_factor=1 / 16)
-            _r3e_dist_mtx = F.interpolate(_dist_mtx, scale_factor=1 / 8)
-            _r2e_dist_mtx = F.interpolate(_dist_mtx, scale_factor=1 / 4)
             # expand to ---  no, c, h, w
-            _k4e = k4[i].expand(n_objects[i], -1, -1, -1) * _k4e_dist_mtx
-            _v4e = v4[i].expand(n_objects[i], -1, -1, -1) * _v4e_dist_mtx
-            _r3e = r3[i].expand(n_objects[i], -1, -1, -1) * _r3e_dist_mtx
-            _r2e = r2[i].expand(n_objects[i], -1, -1, -1) * _r2e_dist_mtx
+            _k4e = k4[i].expand(n_objects[i], -1, -1, -1)
+            _v4e = v4[i].expand(n_objects[i], -1, -1, -1)
+            _r3e = r3[i].expand(n_objects[i], -1, -1, -1)
+            _r2e = r2[i].expand(n_objects[i], -1, -1, -1)
             # print(_k4e.shape) # torch.Size([n_objects, 128, 30, 57])
             # print(_v4e.shape) # torch.Size([n_objects, 512, 30, 57])
             # print(_r3e.shape) # torch.Size([n_objects, 512, 60, 114])
@@ -362,6 +358,7 @@ class STM(torch.nn.Module):
             batch_list['r2e'].append(_r2e)
             batch_list['key'].append(_key)
             batch_list['value'].append(_value)
+            batch_list['dist_mtx'].append(_dist_mtx)
 
         for k, v in batch_list.items():
             batch_list[k] = torch.cat(v, dim=0)
@@ -371,6 +368,13 @@ class STM(torch.nn.Module):
         # print(values.shape)   # torch.Size([bs, n_objects, 512, 1, 30, 57])
         m4, viz = self.memory(batch_list['key'], batch_list['value'], batch_list['k4e'],
                               batch_list['v4e'])
+
+        m4_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 16)
+        r3e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 8)
+        r2e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 4)
+        m4 = m4 * m4_dist_mtx
+        batch_list['r3e'] = batch_list['r3e'] * r3e_dist_mtx
+        batch_list['r2e'] = batch_list['r2e'] * r2e_dist_mtx
         # print(m4.shape)       # torch.Size([bs, 1024, 30, 57])
         # print(viz.shape)      # torch.Size([bs, 3240, 1710])
         logits = self.decoder(m4, batch_list['r3e'], batch_list['r2e'])
