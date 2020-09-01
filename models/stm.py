@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-28 09:44:58
+# @Last Modified time: 2020-09-01 17:18:27
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -299,7 +299,7 @@ class STM(torch.nn.Module):
         # Make the distance == 0 for occluded regions
         dist_matrix[occ_mask == 0] = 1
 
-        return dist_matrix, expt_mask
+        return dist_matrix
 
     def soft_aggregation(self, ps, K, n_objects):
         B = len(n_objects)
@@ -366,15 +366,15 @@ class STM(torch.nn.Module):
         # memory select kv:(1, K, C, T, H, W)
         # print(keys.shape)     # torch.Size([bs, n_objects, 128, 1, 30, 57])
         # print(values.shape)   # torch.Size([bs, n_objects, 512, 1, 30, 57])
+        r4e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 16)
+        r3e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 8)
+        r2e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 4)
+        batch_list['k4e'] = batch_list['k4e'] * r4e_dist_mtx
+        batch_list['r3e'] = batch_list['r3e'] * r3e_dist_mtx
+        batch_list['r2e'] = batch_list['r2e'] * r2e_dist_mtx
         m4, viz = self.memory(batch_list['key'], batch_list['value'], batch_list['k4e'],
                               batch_list['v4e'])
 
-        m4_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 16)
-        r3e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 8)
-        r2e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 4)
-        m4 = m4 * m4_dist_mtx
-        batch_list['r3e'] = batch_list['r3e'] * r3e_dist_mtx
-        batch_list['r2e'] = batch_list['r2e'] * r2e_dist_mtx
         # print(m4.shape)       # torch.Size([bs, 1024, 30, 57])
         # print(viz.shape)      # torch.Size([bs, 3240, 1710])
         logits = self.decoder(m4, batch_list['r3e'], batch_list['r2e'])
@@ -428,8 +428,7 @@ class STM(torch.nn.Module):
             # Segment
             curr_frame = utils.helpers.var_or_cuda(frames[:, t], device)
             curr_flow = utils.helpers.var_or_cuda(optical_flows[:, t], device)
-            dist_mtx, expt_mask = self.get_dist_matrix(prev_mask, curr_flow)
-
+            dist_mtx = self.get_dist_matrix(prev_mask, curr_flow)
             logit = self.segment(curr_frame, dist_mtx, this_keys, this_values, n_objects)
             est_masks[:, t] = F.softmax(logit, dim=1)
 
