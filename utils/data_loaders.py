@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-08 15:40:21
+# @Last Modified time: 2020-09-01 20:07:45
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -202,6 +202,9 @@ class DavisDataset(object):
                     'n_objects': cfg.TRAIN.N_MAX_OBJECTS
                 }
             }, {
+                'callback': 'HistogramEqualization',
+                'parameters': None
+            }, {
                 'callback': 'ColorJitter',
                 'parameters': {
                     'brightness': cfg.TRAIN.AUGMENTATION.COLOR_BRIGHTNESS,
@@ -236,6 +239,10 @@ class DavisDataset(object):
                         'shuffle': False,
                         'n_objects': cfg.TEST.N_MAX_OBJECTS
                     }
+                },
+                {
+                    'callback': 'HistogramEqualization',
+                    'parameters': None
                 },
                 {
                     'callback': 'Normalize',
@@ -342,6 +349,9 @@ class YoutubeVosDataset(object):
                     'n_objects': cfg.TRAIN.N_MAX_OBJECTS
                 }
             }, {
+                'callback': 'HistogramEqualization',
+                'parameters': None
+            }, {
                 'callback': 'ColorJitter',
                 'parameters': {
                     'brightness': cfg.TRAIN.AUGMENTATION.COLOR_BRIGHTNESS,
@@ -376,6 +386,10 @@ class YoutubeVosDataset(object):
                         'shuffle': False,
                         'n_objects': cfg.TEST.N_MAX_OBJECTS
                     }
+                },
+                {
+                    'callback': 'HistogramEqualization',
+                    'parameters': None
                 },
                 {
                     'callback': 'Normalize',
@@ -474,6 +488,10 @@ class ImageDataset(object):
                     'shuffle': True,
                     'n_objects': cfg.TRAIN.N_MAX_OBJECTS
                 }
+            },
+            {
+                'callback': 'HistogramEqualization',
+                'parameters': None
             },
             {
                 'callback': 'ColorJitter',
