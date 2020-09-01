@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-27 11:36:41
+# @Last Modified time: 2020-09-01 15:25:07
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -10,6 +10,7 @@ import os
 import random
 import torch
 import uuid
+import zipfile
 
 import utils.data_loaders
 import utils.helpers
@@ -18,7 +19,6 @@ from time import time
 
 from core.test import test_net
 from models.stm import STM
-from models.focal_loss import FocalLoss
 from models.lovasz_loss import LovaszLoss
 from utils.average_meter import AverageMeter
 from utils.metrics import Metrics
@@ -90,8 +90,8 @@ def train_net(cfg):
         logging.info('Recover completed. Current epoch = #%d; best metrics = %s.' %
                      (init_epoch, best_metrics))
 
-    # Set up folders for logs and checkpoints
-    output_dir = os.path.join(cfg.DIR.OUT_PATH, '%s', cfg.CONST.EXP_NAME)
+    # Set up folders for logs, snapshot and checkpoints
+    output_dir = os.path.join(cfg.DIR.OUTPUT_DIR, '%s', cfg.CONST.EXP_NAME)
     cfg.DIR.CHECKPOINTS = output_dir % 'checkpoints'
     cfg.DIR.LOGS = output_dir % 'logs'
     if not os.path.exists(cfg.DIR.CHECKPOINTS):
@@ -101,10 +101,26 @@ def train_net(cfg):
     train_writer = SummaryWriter(cfg, 'train')
     val_writer = SummaryWriter(cfg, 'test')
 
+    # Backup current code snapshot
+    cfg.DIR.SNAPSHOTS = os.path.join(cfg.DIR.OUTPUT_DIR, 'snapshots')
+    if not os.path.exists(cfg.DIR.SNAPSHOTS):
+        os.makedirs(cfg.DIR.SNAPSHOTS)
+
+    with zipfile.ZipFile(os.path.join(cfg.DIR.SNAPSHOTS, '%s.zip' % cfg.CONST.EXP_NAME),
+                         'w') as zf:
+        root_dir = os.getcwd()
+        for dirname, subdirs, files in os.walk(root_dir):
+            if os.path.normpath(dirname).find(os.path.normpath(cfg.DIR.OUTPUT_DIR)) != -1:
+                continue
+
+            _dirname = os.path.relpath(dirname, root_dir)
+            zf.write(_dirname)
+            for filename in files:
+                zf.write(os.path.join(_dirname, filename))
+
     # Training/Testing the network
     losses = AverageMeter()
     n_batches = len(train_data_loader)
-    total_itr = cfg.TRAIN.N_EPOCHS * n_batches
     for epoch_idx in range(init_epoch + 1, cfg.TRAIN.N_EPOCHS + 1):
         epoch_start_time = time()
 

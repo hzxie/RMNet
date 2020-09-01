@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-08-08 17:16:07
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-12 20:51:17
+# @Last Modified time: 2020-09-01 14:56:07
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -165,7 +165,7 @@ def main():
     cfg = locals()['__C']
     cfg.DATASETS.DAVIS.INDEXING_FILE_PATH = os.path.abspath(
         os.path.join(PROJECT_HOME, cfg.DATASETS.DAVIS.INDEXING_FILE_PATH))
-    cfg.DIR.OUT_PATH = os.path.abspath(os.path.join(PROJECT_HOME, cfg.DIR.OUT_PATH))
+    cfg.DIR.OUTPUT_DIR = os.path.abspath(os.path.join(PROJECT_HOME, cfg.DIR.OUTPUT_DIR))
 
     # Set up the exp_name
     cfg.CONST.EXP_NAME = args.exp_name
@@ -184,7 +184,7 @@ def main():
         cfg.CONST.EXP_NAME = args.remote[args.remote.rstrip('/').rfind('/') + 1:]
 
     # Set up the checkpoint folder
-    output_dir = os.path.join(cfg.DIR.OUT_PATH, '%s', cfg.CONST.EXP_NAME)
+    output_dir = os.path.join(cfg.DIR.OUTPUT_DIR, '%s', cfg.CONST.EXP_NAME)
     cfg.DIR.CHECKPOINTS = output_dir % 'checkpoints'
     if not os.path.exists(cfg.DIR.CHECKPOINTS) and args.remote is None:
         logging.error('The checkpoints folder[Path=%s] does not exist.' % cfg.DIR.CHECKPOINTS)

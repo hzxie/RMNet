@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-27 11:38:36
+# @Last Modified time: 2020-09-01 15:04:50
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -68,7 +68,7 @@ __C.CONST.EXP_NAME                               = datetime.now().isoformat()
 # Directories
 #
 __C.DIR                                          = edict()
-__C.DIR.OUT_PATH                                 = './output'
+__C.DIR.OUTPUT_DIR                               = './output'
 
 #
 # Memcached
