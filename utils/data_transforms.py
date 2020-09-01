@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-25 15:49:59
+# @Last Modified time: 2020-09-01 20:05:35
 # @Email:  cshzxie@gmail.com
 
 import cv2
@@ -244,6 +244,19 @@ class ColorJitter(object):
                                                                hue=self.hue)
         for idx, f in enumerate(frames):
             frames[idx] = np.array(jitter(Image.fromarray(f)))
+
+        return frames, masks, optical_flows
+
+
+class HistogramEqualization(object):
+    def __init__(self, parameters):
+        pass
+
+    def __call__(self, frames, masks, optical_flows):
+        for idx, f in enumerate(frames):
+            img_yuv = cv2.cvtColor(f, cv2.COLOR_BGR2YUV)
+            img_yuv[:, :, 0] = cv2.equalizeHist(img_yuv[:, :, 0])
+            frames[idx] = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
 
         return frames, masks, optical_flows
 
