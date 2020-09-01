@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:26
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-08 17:06:25
+# @Last Modified time: 2020-09-01 14:56:09
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -51,7 +51,7 @@ def inference_net(cfg):
                                                             n_objects)
 
             video_name = video_name[0]
-            output_folder = os.path.join(cfg.DIR.OUT_PATH, 'benchmark', cfg.CONST.EXP_NAME,
+            output_folder = os.path.join(cfg.DIR.OUTPUT_DIR, 'benchmark', cfg.CONST.EXP_NAME,
                                          video_name)
             if not os.path.exists(output_folder):
                 os.makedirs(output_folder)
