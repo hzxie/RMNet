@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-01 15:25:07
+# @Last Modified time: 2020-09-16 12:51:28
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -63,13 +63,11 @@ def train_net(cfg):
         stm = torch.nn.DataParallel(stm).cuda()
 
     # Create the optimizers
-    optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, stm.parameters()),
-                                  lr=cfg.TRAIN.LEARNING_RATE,
-                                  weight_decay=cfg.TRAIN.WEIGHT_DECAY,
-                                  betas=cfg.TRAIN.BETAS)
-    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
-                                                        milestones=cfg.TRAIN.LR_MILESTONES,
-                                                        gamma=cfg.TRAIN.GAMMA)
+    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, stm.parameters()),
+                                 lr=cfg.TRAIN.LEARNING_RATE,
+                                 weight_decay=cfg.TRAIN.WEIGHT_DECAY,
+                                 betas=cfg.TRAIN.BETAS)
+    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, cfg.TRAIN.N_EPOCHS)
 
     # Set up loss functions
     nll_loss = torch.nn.NLLLoss(ignore_index=cfg.CONST.IGNORE_IDX)
@@ -166,11 +164,10 @@ def train_net(cfg):
                 loss.backward()
                 optimizer.step()
             except Exception as ex:
-                logging.warn(ex)
+                logging.warning(ex)
                 continue
 
             train_writer.add_scalar('Loss/Batch', loss.item(), n_itr)
-
             batch_time.update(time() - batch_end_time)
             batch_end_time = time()
             logging.info(

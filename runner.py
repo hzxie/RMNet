@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:00:36
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-11 20:08:34
+# @Last Modified time: 2020-09-16 12:56:01
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -67,6 +67,8 @@ def main():
         random.seed(cfg.CONST.RNG_SEED)
         np.random.seed(cfg.CONST.RNG_SEED)
         torch.manual_seed(cfg.CONST.RNG_SEED)
+        torch.cuda.manual_seed(cfg.CONST.RNG_SEED)
+        torch.cuda.manual_seed_all(cfg.CONST.RNG_SEED)
         # References: https://pytorch.org/docs/stable/notes/randomness.html
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False

@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-01 17:18:27
+# @Last Modified time: 2020-09-16 12:55:32
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -144,7 +144,7 @@ class MemoryReader(torch.nn.Module):
     def __init__(self):
         super(MemoryReader, self).__init__()
 
-    def forward(self, m_key, m_val, q_key, q_val):    # m_key: o,c,t,h,w
+    def forward(self, m_key, m_val, q_key, q_val, dist_mtx):    # m_key: o,c,t,h,w
         B, D_e, T, H, W = m_key.size()
         _, D_o, _, _, _ = m_val.size()
 
@@ -152,8 +152,9 @@ class MemoryReader(torch.nn.Module):
         mi = torch.transpose(mi, 1, 2)    # b, THW, emb
 
         qi = q_key.view(B, D_e, H * W)    # b, emb, HW
+        dist_mtx = dist_mtx.view(B, 1, H * W)
 
-        p = torch.bmm(mi, qi)    # b, THW, HW
+        p = torch.bmm(mi, qi * dist_mtx)    # b, THW, HW
         p = p / math.sqrt(D_e)
         p = F.softmax(p, dim=1)    # b, THW, HW
 
@@ -296,7 +297,7 @@ class STM(torch.nn.Module):
         _, K, _, _ = prev_mask.shape
         expt_mask, occ_mask = self.warp(prev_mask, flow)
         dist_matrix = self.dist_matrix(expt_mask)
-        # Make the distance == 0 for occluded regions
+        dist_matrix[expt_mask > 0.5] = 1.5
         dist_matrix[occ_mask == 0] = 1
 
         return dist_matrix
@@ -367,20 +368,20 @@ class STM(torch.nn.Module):
         # print(keys.shape)     # torch.Size([bs, n_objects, 128, 1, 30, 57])
         # print(values.shape)   # torch.Size([bs, n_objects, 512, 1, 30, 57])
         r4e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 16)
-        r3e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 8)
-        r2e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 4)
-        batch_list['k4e'] = batch_list['k4e'] * r4e_dist_mtx
-        batch_list['r3e'] = batch_list['r3e'] * r3e_dist_mtx
-        batch_list['r2e'] = batch_list['r2e'] * r2e_dist_mtx
+        # r3e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 8)
+        # r2e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 4)
+        # batch_list['k4e'] = batch_list['k4e'] * r4e_dist_mtx
+        # batch_list['r3e'] = batch_list['r3e'] * r3e_dist_mtx
+        # batch_list['r2e'] = batch_list['r2e'] * r2e_dist_mtx
         m4, viz = self.memory(batch_list['key'], batch_list['value'], batch_list['k4e'],
-                              batch_list['v4e'])
+                              batch_list['v4e'], r4e_dist_mtx)
 
-        # print(m4.shape)       # torch.Size([bs, 1024, 30, 57])
-        # print(viz.shape)      # torch.Size([bs, 3240, 1710])
+        # print(m4.shape)       # torch.Size([n_objects, 1024, 30, 57])
+        # print(viz.shape)      # torch.Size([n_objects, 3240, 1710])
         logits = self.decoder(m4, batch_list['r3e'], batch_list['r2e'])
-        # print(logits.shape)   # torch.Size([bs, 2, 480, 912])
+        # print(logits.shape)   # torch.Size([n_objects, 2, 480, 912])
         ps = F.softmax(logits, dim=1)    # no, h, w
-        # print(ps.shape)       # torch.Size([bs, 2, 480, 912])
+        # print(ps.shape)       # torch.Size([n_objects, 2, 480, 912])
         ps = ps[:, 1]
         # print(ps.shape)       # torch.Size([n_objects, 480, 912])
         # ps = indipendant possibility to belong to each object

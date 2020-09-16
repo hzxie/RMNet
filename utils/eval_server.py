@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-08-08 17:16:07
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-01 14:56:07
+# @Last Modified time: 2020-09-16 12:51:51
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -109,8 +109,8 @@ def test_network(cfg, network, data_loader, checkpoint, result_set):
                 masks = torch.argmax(masks, dim=2)
                 est_masks = torch.argmax(est_probs, dim=1)
             except Exception as ex:
-                logging.warn('Error occurred during testing Checkpoint[Name=%s]: %s' %
-                             (checkpoint, ex))
+                logging.warning('Error occurred during testing Checkpoint[Name=%s]: %s' %
+                                (checkpoint, ex))
                 continue
 
             metrics = Metrics.get(est_masks[0], masks[0])

@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2019-08-08 14:31:30
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-09 12:46:08
+# @Last Modified time: 2020-09-16 12:51:58
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers
@@ -243,7 +243,7 @@ class Metrics(object):
                 metric_indexes[item_name] = idx
             for k, v in values.items():
                 if k not in metric_indexes:
-                    logging.warn('Ignore Metric[Name=%s] due to disability.' % k)
+                    logging.warning('Ignore Metric[Name=%s] due to disability.' % k)
                     continue
                 self._values[metric_indexes[k]] = v
         else:
