@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-16 13:05:33
+# @Last Modified time: 2020-09-16 14:01:05
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -43,6 +43,7 @@ class Dataset(torch.utils.data.dataset.Dataset):
         frames = []
         masks = []
         opt_flows = []
+        n_objects = []
 
         frame_indexes = self._get_frame_indexes(video['n_frames'], self.n_max_frames)
         for fi in frame_indexes:
@@ -55,17 +56,20 @@ class Dataset(torch.utils.data.dataset.Dataset):
             opt_flow = opt_flow if opt_flow is not None else np.zeros(frame.shape[:-1] + (2, ))
             opt_flows.append(np.array(opt_flow))
 
-        # Number of objects in the masks
-        mask_indexes = np.unique(masks[0])
-        mask_indexes = mask_indexes[mask_indexes != self.ignore_idx]
-        video['n_objects'] = len(mask_indexes) - 1
-        n_objects = min(video['n_objects'], self.n_max_objects)
+        # The number of objects in the masks
+        mask_indexes = set()
+        for m in masks:
+            _mask_indexes = np.unique(m)
+            _mask_indexes = _mask_indexes[_mask_indexes != self.ignore_idx]
+            mask_indexes.update(_mask_indexes)
+            _n_objects = min(len(mask_indexes) - 1, self.n_max_objects)
+            n_objects.append(_n_objects)
 
         # Data preprocessing and augmentation
         if self.transforms is not None:
             frames, masks, opt_flows = self.transforms(frames, masks, opt_flows)
 
-        return video['name'], n_objects, frames, masks, opt_flows
+        return video['name'], np.array(n_objects), frames, masks, opt_flows
 
     def _get_frame_indexes(self, n_frames, n_max_frames):
         if n_max_frames == 0:

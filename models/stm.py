@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-16 12:55:32
+# @Last Modified time: 2020-09-16 14:00:53
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -409,13 +409,23 @@ class STM(torch.nn.Module):
         keys = None
         values = None
         est_masks[:, 0] = masks[:, 0]
-        n_objects = [no.item() for no in n_objects]
+        n_max_objects = [torch.max(no).item() for no in n_objects]
+        existing_objects = [
+            torch.unique(torch.argmax(masks[i, 0], dim=0)).cpu().tolist()
+            for i in range(batch_size)
+        ]
+
+        # Set the frames to memorize
         to_memorize = [j for j in range(0, n_frames, memorize_every)]
+        contains_new_objects = [
+            j for j in range(1, n_frames) if (n_objects[:, j] != n_objects[:, j - 1]).any()
+        ]
+
         for t in range(1, n_frames):
             # Memorize
             prev_mask = utils.helpers.var_or_cuda(est_masks[:, t - 1], device)
             prev_frame = utils.helpers.var_or_cuda(frames[:, t - 1], device)
-            prev_key, prev_value = self.memorize(prev_frame, prev_mask, n_objects)
+            prev_key, prev_value = self.memorize(prev_frame, prev_mask, n_max_objects)
 
             if t - 1 == 0:
                 this_keys, this_values = prev_key, prev_value
@@ -423,14 +433,23 @@ class STM(torch.nn.Module):
                 this_keys = torch.cat([keys, prev_key], dim=3)
                 this_values = torch.cat([values, prev_value], dim=3)
 
-            if t - 1 in to_memorize:
+            if t - 1 in to_memorize or t - 1 in contains_new_objects:
                 keys, values = this_keys, this_values
 
             # Segment
             curr_frame = utils.helpers.var_or_cuda(frames[:, t], device)
             curr_flow = utils.helpers.var_or_cuda(optical_flows[:, t], device)
             dist_mtx = self.get_dist_matrix(prev_mask, curr_flow)
-            logit = self.segment(curr_frame, dist_mtx, this_keys, this_values, n_objects)
+            logit = self.segment(curr_frame, dist_mtx, this_keys, this_values, n_max_objects)
             est_masks[:, t] = F.softmax(logit, dim=1)
+
+            # Detect new objects
+            if t in contains_new_objects:
+                for i in range(batch_size):
+                    for j in torch.unique(torch.argmax(masks[i, t], dim=0)).cpu().tolist():
+                        if j not in existing_objects[i]:
+                            print('not existing object idx', j)
+                            existing_objects[i].append(j)
+                            est_masks[i, t, j] = masks[i, t, j]
 
         return est_masks
