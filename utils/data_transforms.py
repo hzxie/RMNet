@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 17:01:04
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-01 20:05:35
+# @Last Modified time: 2020-09-16 13:27:23
 # @Email:  cshzxie@gmail.com
 
 import cv2
@@ -55,7 +55,7 @@ class ReorganizeObjectID(object):
         self.ignore_idx = parameters['ignore_idx']
 
     def __call__(self, frames, masks, optical_flows):
-        mask_indexes = np.unique(masks[0])
+        mask_indexes = np.unique(np.array(masks))
         mask_indexes = mask_indexes[mask_indexes != self.ignore_idx]
 
         for m_idx, m in enumerate(masks):

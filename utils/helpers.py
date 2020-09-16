@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-08-12 11:12:29
+# @Last Modified time: 2020-09-16 14:01:16
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -15,7 +15,7 @@ from PIL import Image
 
 def var_or_cuda(x, device=None):
     x = x.contiguous()
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and device != torch.device('cpu'):
         if device is None:
             x = x.cuda(non_blocking=True)
         else:
@@ -44,8 +44,6 @@ def count_parameters(network):
 def multi_scale_inference(cfg, network, frames, masks, optical_flows, n_objects):
     _, n, c, h, w = frames.size()
     est_probs = []
-    # ONLY the first frame is used during the inference
-    masks = masks[:, 0].unsqueeze(dim=1)
 
     for fs in cfg.TEST.FRAME_SCALES:
         _frames = F.interpolate(frames[0], scale_factor=fs, mode='bilinear',

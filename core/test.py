@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-16 12:51:47
+# @Last Modified time: 2020-09-16 14:22:42
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -87,7 +87,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
 
             test_losses.update(loss)
             metrics = Metrics.get(est_masks[0], masks[0])
-            test_metrics.update(metrics, n_objects[0].item())
+            test_metrics.update(metrics, torch.max(n_objects[0]).item())
 
             video_name = video_name[0]
             if test_writer is not None and idx < 3 and cfg.TEST.VISUALIZE_EVERY > 0:
