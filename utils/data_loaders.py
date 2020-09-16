@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-01 20:07:45
+# @Last Modified time: 2020-09-16 13:05:33
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -84,28 +84,6 @@ class Dataset(torch.utils.data.dataset.Dataset):
             return sorted(random.sample([i for i in range(n_frames)], n_max_frames))
 
         return [i for i in range(frame_begin_idx, frame_end_idx + 1, self.frame_step)]
-
-    def _get_target_objects(self, frame, mask, object_size, normalization_params):
-        n_objects = mask.shape[0] - 1
-        target_objects = np.zeros((n_objects, 3, object_size, object_size)).astype(np.float32)
-
-        non_empty_counter = 0
-        for i in range(n_objects):
-            x_min, x_max, y_min, y_max = utils.helpers.get_bounding_boxes(mask[i + 1])
-            if x_min is None or x_max is None or y_min is None or y_max is None:
-                continue
-
-            target_object = np.array(
-                Image.fromarray(frame[y_min:y_max + 1, x_min:x_max + 1, :]).resize(
-                    (object_size, object_size), Image.BILINEAR))
-            target_objects[non_empty_counter] = utils.helpers.img_normalize(
-                target_object,
-                normalization_params['mean'],
-                normalization_params['std'],
-                order='CHW')
-            non_empty_counter += 1
-
-        return target_objects, non_empty_counter
 
     def set_frame_step(self, frame_step):
         self.frame_step = frame_step
@@ -202,9 +180,6 @@ class DavisDataset(object):
                     'n_objects': cfg.TRAIN.N_MAX_OBJECTS
                 }
             }, {
-                'callback': 'HistogramEqualization',
-                'parameters': None
-            }, {
                 'callback': 'ColorJitter',
                 'parameters': {
                     'brightness': cfg.TRAIN.AUGMENTATION.COLOR_BRIGHTNESS,
@@ -239,10 +214,6 @@ class DavisDataset(object):
                         'shuffle': False,
                         'n_objects': cfg.TEST.N_MAX_OBJECTS
                     }
-                },
-                {
-                    'callback': 'HistogramEqualization',
-                    'parameters': None
                 },
                 {
                     'callback': 'Normalize',
@@ -291,15 +262,10 @@ class DavisDataset(object):
 class YoutubeVosDataset(object):
     def __init__(self, cfg):
         self.cfg = cfg
-        # Load the dataset indexing file
         self.videos = []
-        with open(cfg.DATASETS.YOUTUBE_VOS.INDEXING_FILE_PATH) as f:
-            self.videos = json.loads(f.read())
-            if 'videos' in self.videos:
-                self.videos = self.videos['videos']
 
     def get_dataset(self, subset):
-        file_list = self._get_file_list(self.cfg)
+        file_list = self._get_file_list(self.cfg, self._get_subset(subset))
         transforms = self._get_transforms(self.cfg, subset)
 
         n_max_frames = self.cfg.TRAIN.N_MAX_FRAMES if subset == DatasetSubset.TRAIN else 0
@@ -349,9 +315,6 @@ class YoutubeVosDataset(object):
                     'n_objects': cfg.TRAIN.N_MAX_OBJECTS
                 }
             }, {
-                'callback': 'HistogramEqualization',
-                'parameters': None
-            }, {
                 'callback': 'ColorJitter',
                 'parameters': {
                     'brightness': cfg.TRAIN.AUGMENTATION.COLOR_BRIGHTNESS,
@@ -388,10 +351,6 @@ class YoutubeVosDataset(object):
                     }
                 },
                 {
-                    'callback': 'HistogramEqualization',
-                    'parameters': None
-                },
-                {
                     'callback': 'Normalize',
                     'parameters': {
                         'mean': cfg.CONST.DATASET_MEAN,
@@ -404,7 +363,21 @@ class YoutubeVosDataset(object):
                 },
             ])
 
-    def _get_file_list(self, cfg):
+    def _get_subset(self, subset):
+        if subset == DatasetSubset.TRAIN:
+            return 'train'
+        elif subset == DatasetSubset.VAL:
+            return 'valid'
+        else:
+            return 'test'
+
+    def _get_file_list(self, cfg, subset):
+        # Load the dataset indexing file
+        with open(cfg.DATASETS.YOUTUBE_VOS.INDEXING_FILE_PATH % subset) as f:
+            v = json.loads(f.read())
+            if 'videos' in v:
+                self.videos = v['videos']
+
         file_list = []
         for v in self.videos:
             video = self.videos[v]
@@ -417,15 +390,15 @@ class YoutubeVosDataset(object):
                 'name': '%s/%s' % ('YouTubeVOS', v),
                 'n_frames': len(frame_indexes),
                 'frames': [
-                    cfg.DATASETS.YOUTUBE_VOS.IMG_FILE_PATH % (v, i)
+                    cfg.DATASETS.YOUTUBE_VOS.IMG_FILE_PATH % (subset, v, i)
                     for i in frame_indexes
                 ],
                 'masks': [
-                    cfg.DATASETS.YOUTUBE_VOS.ANNOTATION_FILE_PATH % (v, i)
+                    cfg.DATASETS.YOUTUBE_VOS.ANNOTATION_FILE_PATH % (subset, v, i)
                     for i in frame_indexes
                 ],
                 'optical_flow': [
-                    cfg.DATASETS.YOUTUBE_VOS.OPTICAL_FLOW_FILE_PATH % (v, i)
+                    cfg.DATASETS.YOUTUBE_VOS.OPTICAL_FLOW_FILE_PATH % (subset, v, i)
                     for i in frame_indexes
                 ]
             })  # yapf: disable
@@ -488,10 +461,6 @@ class ImageDataset(object):
                     'shuffle': True,
                     'n_objects': cfg.TRAIN.N_MAX_OBJECTS
                 }
-            },
-            {
-                'callback': 'HistogramEqualization',
-                'parameters': None
             },
             {
                 'callback': 'ColorJitter',

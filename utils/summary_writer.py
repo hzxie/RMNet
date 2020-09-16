@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-19 12:52:36
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-04-19 14:38:27
+# @Last Modified time: 2020-09-16 12:52:03
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -11,7 +11,7 @@ import tensorboardX
 try:
     import pavi
 except Exception as ex:
-    logging.warn(ex)
+    logging.warning(ex)
 
 
 class SummaryWriter(object):
