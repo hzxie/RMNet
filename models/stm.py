@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-16 14:00:53
+# @Last Modified time: 2020-09-17 11:12:23
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -441,15 +441,16 @@ class STM(torch.nn.Module):
             curr_flow = utils.helpers.var_or_cuda(optical_flows[:, t], device)
             dist_mtx = self.get_dist_matrix(prev_mask, curr_flow)
             logit = self.segment(curr_frame, dist_mtx, this_keys, this_values, n_max_objects)
-            est_masks[:, t] = F.softmax(logit, dim=1)
 
             # Detect new objects
             if t in contains_new_objects:
                 for i in range(batch_size):
                     for j in torch.unique(torch.argmax(masks[i, t], dim=0)).cpu().tolist():
                         if j not in existing_objects[i]:
-                            print('not existing object idx', j)
                             existing_objects[i].append(j)
-                            est_masks[i, t, j] = masks[i, t, j]
+                            # torch.min(logit) = -16.1181, torch.max(logit) = 15.9424
+                            logit[i, j] = masks[i, t, j].float() * 32.0605 - 16.1181
+
+            est_masks[:, t] = F.softmax(logit, dim=1)
 
         return est_masks
