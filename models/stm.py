@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-17 11:12:23
+# @Last Modified time: 2020-09-18 16:10:02
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -18,7 +18,7 @@ import torchvision.models
 
 import utils.helpers
 
-from extensions.dist_matrix import DistanceMatrix
+from extensions.dist_matrix_generator import DistanceMatrixGenerator
 
 
 class ResBlock(torch.nn.Module):
@@ -188,7 +188,7 @@ class STM(torch.nn.Module):
         self.kv_query = KeyValue(1024, keydim=128, valdim=512)
         self.memory = MemoryReader()
         self.decoder = Decoder(256, [2, 4, 8])
-        self.dist_matrix = DistanceMatrix()
+        self.dist_matrix_generator = DistanceMatrixGenerator()
 
     def pad_memory(self, mems, n_objects, K):
         pad_mems = []
@@ -296,9 +296,8 @@ class STM(torch.nn.Module):
     def get_dist_matrix(self, prev_mask, flow):
         _, K, _, _ = prev_mask.shape
         expt_mask, occ_mask = self.warp(prev_mask, flow)
-        dist_matrix = self.dist_matrix(expt_mask)
+        dist_matrix = self.dist_matrix_generator(expt_mask, occ_mask)
         dist_matrix[expt_mask > 0.5] = 1.5
-        dist_matrix[occ_mask == 0] = 1
 
         return dist_matrix
 

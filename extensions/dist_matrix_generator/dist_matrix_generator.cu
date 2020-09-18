@@ -2,7 +2,7 @@
  * @Author: Haozhe Xie
  * @Date:   2020-08-14 17:22:12
  * @Last Modified by:   Haozhe Xie
- * @Last Modified time: 2020-08-24 21:06:27
+ * @Last Modified time: 2020-09-18 15:02:44
  * @Email:  cshzxie@gmail.com
  */
 
@@ -11,12 +11,11 @@
 
 #define CUDA_NUM_THREADS 512
 
-__global__ void dist_matrix_forward_kernel(int n_objects, int height, int width,
-                                           const float prob_threshold,
-                                           const float *__restrict__ mask,
-                                           int *__restrict__ bboxes,
-                                           int *__restrict__ n_points,
-                                           float *__restrict__ dist_matrix) {
+__global__ void dist_matrix_generator_cuda_kernel(
+    int n_objects, int height, int width, const float prob_threshold,
+    const float occ_dist_factor, const float *__restrict__ mask,
+    const float *__restrict__ occ_mask, int *__restrict__ bboxes,
+    int *__restrict__ n_points, float *__restrict__ dist_matrix) {
   int batch_index = blockIdx.x;
   int thread_index = threadIdx.x;
   int stride = blockDim.x;
@@ -50,7 +49,7 @@ __global__ void dist_matrix_forward_kernel(int n_objects, int height, int width,
   }
   __syncthreads();
 
-  // Get distance matrix
+  // Calculate the distance matrix according to the bounding boxes
   for (int i = 1; i < n_objects; ++i) {
     if (n_points[i] == 0) {
       continue;
@@ -72,13 +71,24 @@ __global__ void dist_matrix_forward_kernel(int n_objects, int height, int width,
       } else if (y > bboxes[i * 4 + 3]) {
         diff_y = bboxes[i * 4 + 3] - y;
       }
-      dist_matrix[i * n_pixels + j] = diff_x * diff_x + diff_y * diff_y;
+
+      // Determine the values of the distance matrix
+      float dist = diff_x * diff_x + diff_y * diff_y;
+      dist_matrix[i * n_pixels + j] = dist;
+      // Determine the values of occluded regions according to the bounding
+      // boxes
+      if (occ_mask[i * n_pixels + j] < 0.5) {
+        dist_matrix[i * n_pixels + j] = dist * occ_dist_factor;
+      }
     }
   }
 }
 
-torch::Tensor dist_matrix_cuda_forward(torch::Tensor mask, float prob_threshold,
-                                       cudaStream_t stream) {
+torch::Tensor dist_matrix_generator_cuda_forward(torch::Tensor mask,
+                                                 torch::Tensor occ_mask,
+                                                 float prob_threshold,
+                                                 float occ_dist_factor,
+                                                 cudaStream_t stream) {
   int batch_size = mask.size(0);
   int n_objects = mask.size(1);
   int height = mask.size(2);
@@ -91,14 +101,16 @@ torch::Tensor dist_matrix_cuda_forward(torch::Tensor mask, float prob_threshold,
   torch::Tensor dist_matrix = torch::zeros(
       {batch_size, n_objects, height, width}, torch::CUDA(torch::kFloat));
 
-  dist_matrix_forward_kernel<<<batch_size, CUDA_NUM_THREADS, 0, stream>>>(
-      n_objects, height, width, prob_threshold, mask.data_ptr<float>(),
+  dist_matrix_generator_cuda_kernel<<<batch_size, CUDA_NUM_THREADS, 0,
+                                      stream>>>(
+      n_objects, height, width, prob_threshold, occ_dist_factor,
+      mask.data_ptr<float>(), occ_mask.data_ptr<float>(),
       bboxes.data_ptr<int>(), n_points.data_ptr<int>(),
       dist_matrix.data_ptr<float>());
 
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    std::cout << "Error in dist_matrix_cuda_forward: "
+    std::cout << "Error in dist_matrix_generator_cuda_forward: "
               << cudaGetErrorString(err);
   }
   return dist_matrix;
