@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-16 12:51:28
+# @Last Modified time: 2020-09-22 10:35:32
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -119,6 +119,7 @@ def train_net(cfg):
     # Training/Testing the network
     losses = AverageMeter()
     n_batches = len(train_data_loader)
+    last_epoch_idx_keep_frame_steps = -cfg.TRAIN.N_EPOCHS
     for epoch_idx in range(init_epoch + 1, cfg.TRAIN.N_EPOCHS + 1):
         epoch_start_time = time()
 
@@ -133,8 +134,9 @@ def train_net(cfg):
 
         # Update frame step
         if cfg.TRAIN.USE_RANDOM_FRAME_STEPS:
-            if epoch_idx + cfg.TRAIN.LAST_N_EPOCHES_FIXING_FRAME_STEPS >= cfg.TRAIN.N_EPOCHS:
-                # Keep the frame step == 1 for the last several epochs
+            if epoch_idx >= cfg.TRAIN.EPOCH_INDEX_FIXING_FRAME_STEPS and \
+               epoch_idx <= last_epoch_idx_keep_frame_steps + TRAIN.N_EPOCHS_KEEP_FRAME_STEPS:
+                # Keep the frame step == 1 when JF Mean exceed a threshold for several epochs
                 max_frame_steps = 1
             else:
                 max_frame_steps = random.randint(
@@ -184,6 +186,8 @@ def train_net(cfg):
 
         # Evaluate the current model
         metrics = test_net(cfg, epoch_idx, val_data_loader, val_writer, stm)
+        if metrics[cfg.TEST.MAIN_METRIC_NAME] > cfg.TRAIN.KEEP_FRAME_STEPS_THRESHOLD:
+            last_epoch_idx_keep_frame_steps = epoch_idx
 
         # Save ckeckpoints
         if epoch_idx % cfg.TRAIN.CKPT_SAVE_FREQ == 0 and metrics.better_than(METRICS_THRESHOLD):

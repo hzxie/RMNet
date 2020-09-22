@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:26
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-01 14:56:09
+# @Last Modified time: 2020-09-22 10:07:55
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -18,9 +18,6 @@ from models.stm import STM
 
 
 def inference_net(cfg):
-    # Enable the inbuilt cudnn auto-tuner to find the best algorithm to use
-    torch.backends.cudnn.benchmark = True
-
     # Set up data loader
     test_data_loader = torch.utils.data.DataLoader(
         dataset=utils.data_loaders.DatasetCollector.get_dataset(

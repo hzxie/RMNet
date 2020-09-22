@@ -3,7 +3,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-08-08 17:16:07
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-16 12:51:51
+# @Last Modified time: 2020-09-18 16:12:02
 # @Email:  cshzxie@gmail.com
 
 import argparse
@@ -114,7 +114,7 @@ def test_network(cfg, network, data_loader, checkpoint, result_set):
                 continue
 
             metrics = Metrics.get(est_masks[0], masks[0])
-            test_metrics.update(metrics, n_objects[0].item())
+            test_metrics.update(metrics, torch.max(n_objects[0]).item())
 
     jf_mean = test_metrics.avg(2)
     if jf_mean != 0:
