@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-18 16:10:02
+# @Last Modified time: 2020-10-18 17:04:23
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -449,6 +449,12 @@ class STM(torch.nn.Module):
                             existing_objects[i].append(j)
                             # torch.min(logit) = -16.1181, torch.max(logit) = 15.9424
                             logit[i, j] = masks[i, t, j].float() * 32.0605 - 16.1181
+
+            # Set the prob. of non-existing objects to zeros
+            for i in range(batch_size):
+                for j in range(n_max_objects[i]):
+                    if j not in existing_objects[i]:
+                        logit[i, j] = - 16.1181
 
             est_masks[:, t] = F.softmax(logit, dim=1)
 
