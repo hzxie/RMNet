@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-22 10:35:32
+# @Last Modified time: 2020-10-30 16:59:06
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -18,7 +18,7 @@ import utils.helpers
 from time import time
 
 from core.test import test_net
-from models.stm import STM
+from models.rmnet import RMNet
 from models.lovasz_loss import LovaszLoss
 from utils.average_meter import AverageMeter
 from utils.metrics import Metrics
@@ -44,26 +44,26 @@ def train_net(cfg):
         shuffle=False)
 
     # Set up networks
-    stm = STM(cfg)
-    stm.kv_memory.apply(utils.helpers.init_weights)
-    stm.kv_query.apply(utils.helpers.init_weights)
-    stm.decoder.apply(utils.helpers.init_weights)
-    logging.info('Parameters in STM: %d.' % (utils.helpers.count_parameters(stm)))
+    rmnet = RMNet(cfg)
+    rmnet.kv_memory.apply(utils.helpers.init_weights)
+    rmnet.kv_query.apply(utils.helpers.init_weights)
+    rmnet.decoder.apply(utils.helpers.init_weights)
+    logging.info('Parameters in RMNet: %d.' % (utils.helpers.count_parameters(rmnet)))
 
     # Move the network to GPU if possible
     if torch.cuda.is_available():
         if torch.__version__ >= '1.2.0' and cfg.TRAIN.USE_BATCH_NORM:
             torch.distributed.init_process_group('nccl',
-                                                 init_method='file:///tmp/stm-%s' %
+                                                 init_method='file:///tmp/rmnet-%s' %
                                                  uuid.uuid4().hex,
                                                  world_size=1,
                                                  rank=0)
-            stm = torch.nn.SyncBatchNorm.convert_sync_batchnorm(stm)
+            rmnet = torch.nn.SyncBatchNorm.convert_sync_batchnorm(rmnet)
 
-        stm = torch.nn.DataParallel(stm).cuda()
+        rmnet = torch.nn.DataParallel(rmnet).cuda()
 
     # Create the optimizers
-    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, stm.parameters()),
+    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, rmnet.parameters()),
                                  lr=cfg.TRAIN.LEARNING_RATE,
                                  weight_decay=cfg.TRAIN.WEIGHT_DECAY,
                                  betas=cfg.TRAIN.BETAS)
@@ -84,7 +84,7 @@ def train_net(cfg):
         logging.info('Recovering from %s ...' % (cfg.CONST.WEIGHTS))
         checkpoint = torch.load(cfg.CONST.WEIGHTS)
         best_metrics = Metrics(cfg.TEST.MAIN_METRIC_NAME, checkpoint['best_metrics'])
-        stm.load_state_dict(checkpoint['stm'])
+        rmnet.load_state_dict(checkpoint['rmnet'])
         logging.info('Recover completed. Current epoch = #%d; best metrics = %s.' %
                      (init_epoch, best_metrics))
 
@@ -128,9 +128,9 @@ def train_net(cfg):
         losses = AverageMeter()
 
         if cfg.TRAIN.USE_BATCH_NORM:
-            stm.train()
+            rmnet.train()
         else:
-            stm.eval()
+            rmnet.eval()
 
         # Update frame step
         if cfg.TRAIN.USE_RANDOM_FRAME_STEPS:
@@ -157,12 +157,13 @@ def train_net(cfg):
                 masks = utils.helpers.var_or_cuda(masks)
                 optical_flows = utils.helpers.var_or_cuda(optical_flows)
 
-                est_probs = stm(frames, masks, optical_flows, n_objects, cfg.TRAIN.MEMORIZE_EVERY)
+                est_probs = rmnet(frames, masks, optical_flows, n_objects,
+                                  cfg.TRAIN.MEMORIZE_EVERY)
                 est_probs = utils.helpers.var_or_cuda(est_probs[:, 1:]).permute(0, 2, 1, 3, 4)
                 masks = torch.argmax(masks[:, 1:], dim=2)
                 loss = lovasz_loss(est_probs, masks) + nll_loss(torch.log(est_probs), masks)
                 losses.update(loss.item())
-                stm.zero_grad()
+                rmnet.zero_grad()
                 loss.backward()
                 optimizer.step()
             except Exception as ex:
@@ -185,7 +186,7 @@ def train_net(cfg):
             (epoch_idx, cfg.TRAIN.N_EPOCHS, epoch_end_time - epoch_start_time, losses.avg()))
 
         # Evaluate the current model
-        metrics = test_net(cfg, epoch_idx, val_data_loader, val_writer, stm)
+        metrics = test_net(cfg, epoch_idx, val_data_loader, val_writer, rmnet)
         if metrics[cfg.TEST.MAIN_METRIC_NAME] > cfg.TRAIN.KEEP_FRAME_STEPS_THRESHOLD:
             last_epoch_idx_keep_frame_steps = epoch_idx
 
@@ -195,7 +196,7 @@ def train_net(cfg):
             torch.save({
                 'epoch_index': epoch_idx,
                 'best_metrics': metrics.state_dict(),
-                'stm': stm.state_dict()
+                'rmnet': rmnet.state_dict()
             }, output_path)  # yapf: disable
             logging.info('Saved checkpoint to %s ...' % output_path)
 
@@ -205,7 +206,7 @@ def train_net(cfg):
             torch.save({
                 'epoch_index': epoch_idx,
                 'best_metrics': metrics.state_dict(),
-                'stm': stm.state_dict()
+                'rmnet': rmnet.state_dict()
             }, output_path)  # yapf: disable
             logging.info('Saved checkpoint to %s ...' % output_path)
 

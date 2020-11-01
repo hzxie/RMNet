@@ -8,7 +8,8 @@
  * References:
  * - https://stackoverflow.com/questions/34571945/migrating-to-numpy-api-1-7
  * - https://stackoverflow.com/a/47027598/1841143
- * - http://pageperso.lif.univ-mrs.fr/~francois.denis/IAAM1/numpy-html-1.14.0/reference/c-api.array.html
+ * -
+ * http://pageperso.lif.univ-mrs.fr/~francois.denis/IAAM1/numpy-html-1.14.0/reference/c-api.array.html
  */
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION

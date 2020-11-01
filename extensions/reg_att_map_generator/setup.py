@@ -2,16 +2,16 @@
 # @Author: Haozhe Xie
 # @Date:   2020-08-14 16:28:08
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-18 10:17:11
+# @Last Modified time: 2020-10-30 17:02:47
 # @Email:  cshzxie@gmail.com
 
 from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
-setup(name='dist_matrix_generator',
+setup(name='reg_att_map_generator',
       version='1.0.0',
       ext_modules=[
-          CUDAExtension('dist_matrix_generator',
-                        ['dist_matrix_generator_cuda.cpp', 'dist_matrix_generator.cu']),
+          CUDAExtension('reg_att_map_generator',
+                        ['reg_att_map_generator_cuda.cpp', 'reg_att_map_generator.cu']),
       ],
       cmdclass={'build_ext': BuildExtension})
