@@ -2,7 +2,7 @@
  * @Author: Haozhe Xie
  * @Date:   2020-08-14 17:20:32
  * @Last Modified by:   Haozhe Xie
- * @Last Modified time: 2020-09-18 14:58:40
+ * @Last Modified time: 2020-11-01 14:30:12
  * @Email:  cshzxie@gmail.com
  */
 
@@ -17,25 +17,24 @@
   CHECK_CUDA(x);                                                               \
   CHECK_CONTIGUOUS(x)
 
-torch::Tensor dist_matrix_generator_cuda_forward(torch::Tensor mask,
-                                                 torch::Tensor occ_mask,
+torch::Tensor reg_att_map_generator_cuda_forward(torch::Tensor mask,
                                                  float prob_threshold,
-                                                 float occ_dist_factor,
+                                                 int n_pts_threshold,
+                                                 int dist_threshold,
                                                  cudaStream_t stream);
 
-torch::Tensor dist_matrix_generator_forward(torch::Tensor mask,
-                                            torch::Tensor occ_mask,
+torch::Tensor reg_att_map_generator_forward(torch::Tensor mask,
                                             float prob_threshold,
-                                            float occ_dist_factor) {
+                                            int n_pts_threshold,
+                                            int dist_threshold) {
   CHECK_INPUT(mask);
-  CHECK_INPUT(occ_mask);
 
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
-  return dist_matrix_generator_cuda_forward(mask, occ_mask, prob_threshold,
-                                            occ_dist_factor, stream);
+  return reg_att_map_generator_cuda_forward(
+      mask, prob_threshold, n_pts_threshold, dist_threshold, stream);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  m.def("forward", &dist_matrix_generator_forward,
-        "Distance Matrix Generator forward (CUDA)");
+  m.def("forward", &reg_att_map_generator_forward,
+        "Regional Attention Map Generator forward (CUDA)");
 }

@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-10-18 17:04:23
+# @Last Modified time: 2020-10-30 16:59:25
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -18,7 +18,7 @@ import torchvision.models
 
 import utils.helpers
 
-from extensions.dist_matrix_generator import DistanceMatrixGenerator
+from extensions.reg_att_map_generator import RegionalAttentionMapGenerator
 
 
 class ResBlock(torch.nn.Module):
@@ -121,7 +121,7 @@ class Refine(torch.nn.Module):
 
 
 class Decoder(torch.nn.Module):
-    def __init__(self, mdim, atrous_rates):
+    def __init__(self, mdim):
         super(Decoder, self).__init__()
         self.convFM = torch.nn.Conv2d(1024, mdim, kernel_size=3, padding=1, stride=1)
         self.ResMM = ResBlock(mdim, mdim)
@@ -178,17 +178,17 @@ class KeyValue(torch.nn.Module):
         return self.key_conv(x), self.value_conv(x)
 
 
-class STM(torch.nn.Module):
+class RMNet(torch.nn.Module):
     def __init__(self, cfg):
-        super(STM, self).__init__()
+        super(RMNet, self).__init__()
         self.cfg = cfg
         self.encoder_memory = EncoderMemory()
         self.encoder_query = EncoderQuery()
         self.kv_memory = KeyValue(1024, keydim=128, valdim=512)
         self.kv_query = KeyValue(1024, keydim=128, valdim=512)
         self.memory = MemoryReader()
-        self.decoder = Decoder(256, [2, 4, 8])
-        self.dist_matrix_generator = DistanceMatrixGenerator()
+        self.decoder = Decoder(256)
+        self.att_map_generator = RegionalAttentionMapGenerator()
 
     def pad_memory(self, mems, n_objects, K):
         pad_mems = []
@@ -293,13 +293,14 @@ class STM(torch.nn.Module):
         img1 = img1 * mask
         return img1, mask
 
-    def get_dist_matrix(self, prev_mask, flow):
-        _, K, _, _ = prev_mask.shape
-        expt_mask, occ_mask = self.warp(prev_mask, flow)
-        dist_matrix = self.dist_matrix_generator(expt_mask, occ_mask)
-        dist_matrix[expt_mask > 0.5] = 1.5
+    def get_att_map(self, prev_mask, flow=None):
+        if flow is None:
+            expt_mask = prev_mask
+        else:
+            expt_mask, _ = self.warp(prev_mask, flow)
 
-        return dist_matrix
+        att_map = self.att_map_generator(expt_mask)
+        return att_map
 
     def soft_aggregation(self, ps, K, n_objects):
         B = len(n_objects)
@@ -316,11 +317,11 @@ class STM(torch.nn.Module):
         logit = torch.log((em / (1 - em)))
         return logit
 
-    def segment(self, frame, dist_matrix, keys, values, n_objects):
+    def segment(self, frame, att_map, keys, values, n_objects):
         B, K, keydim, T, H, W = keys.shape
         # print(frame.shape)    # torch.Size([bs, 3, 480, 910])
-        (frame, dist_matrix), pad = self.pad_divide_by([frame, dist_matrix], 16,
-                                                       (frame.size()[2], frame.size()[3]))
+        (frame, att_map), pad = self.pad_divide_by([frame, att_map], 16,
+                                                   (frame.size()[2], frame.size()[3]))
         # print(frame.shape)    # torch.Size([bs, 3, 480, 912])
         # print(pad)            # (1, 1, 0, 0)
         r4, r3, r2, _, _ = self.encoder_query(frame)
@@ -337,12 +338,12 @@ class STM(torch.nn.Module):
             'r2e': [],
             'key': [],
             'value': [],
-            'dist_mtx': []
+            'att_map': []
         }
         for i in range(B):
             _key = keys[i, 1:n_objects[i] + 1]
             _value = values[i, 1:n_objects[i] + 1]
-            _dist_mtx = dist_matrix[i, 1:n_objects[i] + 1].unsqueeze(dim=1)
+            _att_map = att_map[i, 1:n_objects[i] + 1].unsqueeze(dim=1)
             # expand to ---  no, c, h, w
             _k4e = k4[i].expand(n_objects[i], -1, -1, -1)
             _v4e = v4[i].expand(n_objects[i], -1, -1, -1)
@@ -358,7 +359,7 @@ class STM(torch.nn.Module):
             batch_list['r2e'].append(_r2e)
             batch_list['key'].append(_key)
             batch_list['value'].append(_value)
-            batch_list['dist_mtx'].append(_dist_mtx)
+            batch_list['att_map'].append(_att_map)
 
         for k, v in batch_list.items():
             batch_list[k] = torch.cat(v, dim=0)
@@ -366,15 +367,10 @@ class STM(torch.nn.Module):
         # memory select kv:(1, K, C, T, H, W)
         # print(keys.shape)     # torch.Size([bs, n_objects, 128, 1, 30, 57])
         # print(values.shape)   # torch.Size([bs, n_objects, 512, 1, 30, 57])
-        r4e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 16)
-        # r3e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 8)
-        # r2e_dist_mtx = F.interpolate(batch_list['dist_mtx'], scale_factor=1 / 4)
-        # batch_list['k4e'] = batch_list['k4e'] * r4e_dist_mtx
-        # batch_list['r3e'] = batch_list['r3e'] * r3e_dist_mtx
-        # batch_list['r2e'] = batch_list['r2e'] * r2e_dist_mtx
+        r4e_att_map = F.interpolate(batch_list['att_map'], scale_factor=1 / 16)
+        # batch_list['k4e'] = batch_list['k4e'] * r4e_att_map
         m4, viz = self.memory(batch_list['key'], batch_list['value'], batch_list['k4e'],
-                              batch_list['v4e'], r4e_dist_mtx)
-
+                              batch_list['v4e'], r4e_att_map)
         # print(m4.shape)       # torch.Size([n_objects, 1024, 30, 57])
         # print(viz.shape)      # torch.Size([n_objects, 3240, 1710])
         logits = self.decoder(m4, batch_list['r3e'], batch_list['r2e'])
@@ -438,7 +434,8 @@ class STM(torch.nn.Module):
             # Segment
             curr_frame = utils.helpers.var_or_cuda(frames[:, t], device)
             curr_flow = utils.helpers.var_or_cuda(optical_flows[:, t], device)
-            dist_mtx = self.get_dist_matrix(prev_mask, curr_flow)
+            expt_mask, _ = self.warp(prev_mask, curr_flow)
+            dist_mtx = self.get_att_map(prev_mask, curr_flow)
             logit = self.segment(curr_frame, dist_mtx, this_keys, this_values, n_max_objects)
 
             # Detect new objects
@@ -454,7 +451,7 @@ class STM(torch.nn.Module):
             for i in range(batch_size):
                 for j in range(n_max_objects[i]):
                     if j not in existing_objects[i]:
-                        logit[i, j] = - 16.1181
+                        logit[i, j] = -16.1181
 
             est_masks[:, t] = F.softmax(logit, dim=1)
 

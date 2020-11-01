@@ -2,20 +2,21 @@
  * @Author: Haozhe Xie
  * @Date:   2020-08-14 17:22:12
  * @Last Modified by:   Haozhe Xie
- * @Last Modified time: 2020-09-18 15:02:44
+ * @Last Modified time: 2020-11-01 14:35:20
  * @Email:  cshzxie@gmail.com
  */
 
 #include <iostream>
+#include <cmath>
 #include <torch/types.h>
 
 #define CUDA_NUM_THREADS 512
 
-__global__ void dist_matrix_generator_cuda_kernel(
+__global__ void reg_att_map_generator_cuda_kernel(
     int n_objects, int height, int width, const float prob_threshold,
-    const float occ_dist_factor, const float *__restrict__ mask,
-    const float *__restrict__ occ_mask, int *__restrict__ bboxes,
-    int *__restrict__ n_points, float *__restrict__ dist_matrix) {
+    int n_pts_threshold, int dist_threshold, const float *__restrict__ mask,
+    int *__restrict__ bboxes, int *__restrict__ n_points,
+    float *__restrict__ reg_att_map) {
   int batch_index = blockIdx.x;
   int thread_index = threadIdx.x;
   int stride = blockDim.x;
@@ -24,7 +25,7 @@ __global__ void dist_matrix_generator_cuda_kernel(
   bboxes += batch_index * n_objects * 4;
   n_points += batch_index * n_objects;
   mask += batch_index * n_objects * n_pixels;
-  dist_matrix += batch_index * n_objects * n_pixels;
+  reg_att_map += batch_index * n_objects * n_pixels;
 
   // Initialize the values for bboxes
   for (int i = 1; i < n_objects; ++i) {
@@ -51,7 +52,7 @@ __global__ void dist_matrix_generator_cuda_kernel(
 
   // Calculate the distance matrix according to the bounding boxes
   for (int i = 1; i < n_objects; ++i) {
-    if (n_points[i] == 0) {
+    if (n_points[i] < n_pts_threshold) {
       continue;
     }
 
@@ -72,22 +73,19 @@ __global__ void dist_matrix_generator_cuda_kernel(
         diff_y = bboxes[i * 4 + 3] - y;
       }
 
-      // Determine the values of the distance matrix
-      float dist = diff_x * diff_x + diff_y * diff_y;
-      dist_matrix[i * n_pixels + j] = dist;
-      // Determine the values of occluded regions according to the bounding
-      // boxes
-      if (occ_mask[i * n_pixels + j] < 0.5) {
-        dist_matrix[i * n_pixels + j] = dist * occ_dist_factor;
+      // Determine the values of the attention map
+      float dist = std::sqrt(diff_x * diff_x + diff_y * diff_y);
+      if (dist > dist_threshold) {
+        reg_att_map[i * n_pixels + j] = 0;
       }
     }
   }
 }
 
-torch::Tensor dist_matrix_generator_cuda_forward(torch::Tensor mask,
-                                                 torch::Tensor occ_mask,
+torch::Tensor reg_att_map_generator_cuda_forward(torch::Tensor mask,
                                                  float prob_threshold,
-                                                 float occ_dist_factor,
+                                                 int n_pts_threshold,
+                                                 int dist_threshold,
                                                  cudaStream_t stream) {
   int batch_size = mask.size(0);
   int n_objects = mask.size(1);
@@ -98,20 +96,19 @@ torch::Tensor dist_matrix_generator_cuda_forward(torch::Tensor mask,
       torch::zeros({batch_size, n_objects, 4}, torch::CUDA(torch::kInt));
   torch::Tensor n_points =
       torch::zeros({batch_size, n_objects}, torch::CUDA(torch::kInt));
-  torch::Tensor dist_matrix = torch::zeros(
+  torch::Tensor reg_att_map = torch::ones(
       {batch_size, n_objects, height, width}, torch::CUDA(torch::kFloat));
 
-  dist_matrix_generator_cuda_kernel<<<batch_size, CUDA_NUM_THREADS, 0,
+  reg_att_map_generator_cuda_kernel<<<batch_size, CUDA_NUM_THREADS, 0,
                                       stream>>>(
-      n_objects, height, width, prob_threshold, occ_dist_factor,
-      mask.data_ptr<float>(), occ_mask.data_ptr<float>(),
-      bboxes.data_ptr<int>(), n_points.data_ptr<int>(),
-      dist_matrix.data_ptr<float>());
+      n_objects, height, width, prob_threshold, n_pts_threshold, dist_threshold,
+      mask.data_ptr<float>(), bboxes.data_ptr<int>(), n_points.data_ptr<int>(),
+      reg_att_map.data_ptr<float>());
 
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    std::cout << "Error in dist_matrix_generator_cuda_forward: "
+    std::cout << "Error in reg_att_map_generator_cuda_forward: "
               << cudaGetErrorString(err);
   }
-  return dist_matrix;
+  return reg_att_map;
 }

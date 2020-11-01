@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-16 14:22:42
+# @Last Modified time: 2020-10-30 17:00:20
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -14,13 +14,13 @@ import utils.helpers
 
 from tqdm import tqdm
 
-from models.stm import STM
+from models.rmnet import RMNet
 from models.lovasz_loss import LovaszLoss
 from utils.average_meter import AverageMeter
 from utils.metrics import Metrics
 
 
-def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=None):
+def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, rmnet=None):
     # Set up data loader
     if test_data_loader is None:
         # Set up data loader
@@ -33,18 +33,18 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
             shuffle=False)
 
     # Setup networks and initialize networks
-    if stm is None:
-        stm = STM(cfg)
+    if rmnet is None:
+        rmnet = RMNet(cfg)
 
         if torch.cuda.is_available():
-            stm = torch.nn.DataParallel(stm).cuda()
+            rmnet = torch.nn.DataParallel(rmnet).cuda()
 
         logging.info('Recovering from %s ...' % (cfg.CONST.WEIGHTS))
         checkpoint = torch.load(cfg.CONST.WEIGHTS)
-        stm.load_state_dict(checkpoint['stm'])
+        rmnet.load_state_dict(checkpoint['rmnet'])
 
     # Switch models to evaluation mode
-    stm.eval()
+    rmnet.eval()
 
     # Set up loss functions
     nll_loss = torch.nn.NLLLoss(ignore_index=cfg.CONST.IGNORE_IDX)
@@ -70,11 +70,11 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
             # Fix bugs: OOM error for large videos
             try:
                 if epoch_idx == -1:
-                    est_probs = utils.helpers.multi_scale_inference(cfg, stm, frames, masks,
+                    est_probs = utils.helpers.multi_scale_inference(cfg, rmnet, frames, masks,
                                                                     optical_flows, n_objects)
                 else:
-                    est_probs = stm(frames, masks, optical_flows, n_objects,
-                                    cfg.TEST.MEMORIZE_EVERY)
+                    est_probs = rmnet(frames, masks, optical_flows, n_objects,
+                                      cfg.TEST.MEMORIZE_EVERY)
 
                 est_probs = est_probs.permute(0, 2, 1, 3, 4)
                 masks = torch.argmax(masks, dim=2)
@@ -83,6 +83,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, stm=Non
                     est_probs, masks).item()
             except Exception as ex:
                 logging.warning(ex)
+                raise ex
                 continue
 
             test_losses.update(loss)
