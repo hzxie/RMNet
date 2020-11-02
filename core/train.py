@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-10-30 16:59:06
+# @Last Modified time: 2020-11-02 09:01:36
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -135,7 +135,7 @@ def train_net(cfg):
         # Update frame step
         if cfg.TRAIN.USE_RANDOM_FRAME_STEPS:
             if epoch_idx >= cfg.TRAIN.EPOCH_INDEX_FIXING_FRAME_STEPS and \
-               epoch_idx <= last_epoch_idx_keep_frame_steps + TRAIN.N_EPOCHS_KEEP_FRAME_STEPS:
+               epoch_idx <= last_epoch_idx_keep_frame_steps + cfg.TRAIN.N_EPOCHS_KEEP_FRAME_STEPS:
                 # Keep the frame step == 1 when JF Mean exceed a threshold for several epochs
                 max_frame_steps = 1
             else:

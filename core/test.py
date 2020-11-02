@@ -83,7 +83,6 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, rmnet=N
                     est_probs, masks).item()
             except Exception as ex:
                 logging.warning(ex)
-                raise ex
                 continue
 
             test_losses.update(loss)
