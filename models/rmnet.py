@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-10-30 16:59:25
+# @Last Modified time: 2020-11-02 18:05:23
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -144,17 +144,15 @@ class MemoryReader(torch.nn.Module):
     def __init__(self):
         super(MemoryReader, self).__init__()
 
-    def forward(self, m_key, m_val, q_key, q_val, dist_mtx):    # m_key: o,c,t,h,w
+    def forward(self, m_key, m_val, q_key, q_val):    # m_key: o,c,t,h,w
         B, D_e, T, H, W = m_key.size()
         _, D_o, _, _, _ = m_val.size()
 
         mi = m_key.view(B, D_e, T * H * W)
         mi = torch.transpose(mi, 1, 2)    # b, THW, emb
-
         qi = q_key.view(B, D_e, H * W)    # b, emb, HW
-        dist_mtx = dist_mtx.view(B, 1, H * W)
 
-        p = torch.bmm(mi, qi * dist_mtx)    # b, THW, HW
+        p = torch.bmm(mi, qi)    # b, THW, HW
         p = p / math.sqrt(D_e)
         p = F.softmax(p, dim=1)    # b, THW, HW
 
@@ -263,6 +261,14 @@ class RMNet(torch.nn.Module):
         k4, v4 = self.pad_memory([k4, v4], n_objects=n_objects, K=K)
         # print(k4.shape)       # torch.Size([bs, n_objects, 128, 1, 30, 57])
         # print(v4.shape)       # torch.Size([bs, n_objects, 512, 1, 30, 57])
+
+        # Generate the regional memory embedding
+        att_map = self.get_att_map(masks)
+        att_map = F.interpolate(att_map, scale_factor=1 / 16).unsqueeze(dim=2).unsqueeze(dim=2)
+        # print(att_map.shape)  # torch.Size([bs, n_objects, 1, 1, 30, 57])
+        k4 = k4 * att_map
+        v4 = v4 * att_map
+
         return k4, v4
 
     def warp(self, img0, flow):
@@ -367,12 +373,18 @@ class RMNet(torch.nn.Module):
         # memory select kv:(1, K, C, T, H, W)
         # print(keys.shape)     # torch.Size([bs, n_objects, 128, 1, 30, 57])
         # print(values.shape)   # torch.Size([bs, n_objects, 512, 1, 30, 57])
-        r4e_att_map = F.interpolate(batch_list['att_map'], scale_factor=1 / 16)
-        # batch_list['k4e'] = batch_list['k4e'] * r4e_att_map
+
+        # Generate the regional query embedding
+        att_map = F.interpolate(batch_list['att_map'], scale_factor=1 / 16)
+        batch_list['k4e'] = batch_list['k4e'] * att_map
+        batch_list['v4e'] = batch_list['v4e'] * att_map
+
+        # Regional Memory Reader
         m4, viz = self.memory(batch_list['key'], batch_list['value'], batch_list['k4e'],
-                              batch_list['v4e'], r4e_att_map)
+                              batch_list['v4e'])
         # print(m4.shape)       # torch.Size([n_objects, 1024, 30, 57])
         # print(viz.shape)      # torch.Size([n_objects, 3240, 1710])
+
         logits = self.decoder(m4, batch_list['r3e'], batch_list['r2e'])
         # print(logits.shape)   # torch.Size([n_objects, 2, 480, 912])
         ps = F.softmax(logits, dim=1)    # no, h, w
@@ -434,7 +446,6 @@ class RMNet(torch.nn.Module):
             # Segment
             curr_frame = utils.helpers.var_or_cuda(frames[:, t], device)
             curr_flow = utils.helpers.var_or_cuda(optical_flows[:, t], device)
-            expt_mask, _ = self.warp(prev_mask, curr_flow)
             dist_mtx = self.get_att_map(prev_mask, curr_flow)
             logit = self.segment(curr_frame, dist_mtx, this_keys, this_values, n_max_objects)
 

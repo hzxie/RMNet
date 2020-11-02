@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 16:43:59
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-16 14:01:05
+# @Last Modified time: 2020-11-02 09:02:03
 # @Email:  cshzxie@gmail.com
 
 import json
@@ -14,7 +14,6 @@ import utils.data_transforms
 import utils.helpers
 
 from enum import Enum, unique
-from PIL import Image
 
 from utils.io import IO
 
