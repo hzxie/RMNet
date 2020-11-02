@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-11-02 09:01:36
+# @Last Modified time: 2020-11-02 20:12:20
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -187,7 +187,7 @@ def train_net(cfg):
 
         # Evaluate the current model
         metrics = test_net(cfg, epoch_idx, val_data_loader, val_writer, rmnet)
-        if metrics[cfg.TEST.MAIN_METRIC_NAME] > cfg.TRAIN.KEEP_FRAME_STEPS_THRESHOLD:
+        if metrics.state_dict()[cfg.TEST.MAIN_METRIC_NAME] > cfg.TRAIN.KEEP_FRAME_STEPS_THRESHOLD:
             last_epoch_idx_keep_frame_steps = epoch_idx
 
         # Save ckeckpoints
