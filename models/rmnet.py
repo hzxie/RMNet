@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-11-02 18:05:23
+# @Last Modified time: 2020-11-03 01:06:18
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -460,7 +460,7 @@ class RMNet(torch.nn.Module):
 
             # Set the prob. of non-existing objects to zeros
             for i in range(batch_size):
-                for j in range(n_max_objects[i]):
+                for j in range(n_max_objects[i] + 1):
                     if j not in existing_objects[i]:
                         logit[i, j] = -16.1181
 
