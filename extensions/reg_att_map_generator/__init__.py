@@ -27,5 +27,5 @@ class RegionalAttentionMapGenerator(torch.nn.Module):
     def __init__(self):
         super(RegionalAttentionMapGenerator, self).__init__()
 
-    def forward(self, mask, prob_threshold=0.5, n_pts_threshold=10, dist_threshold=24):
+    def forward(self, mask, prob_threshold=0.5, n_pts_threshold=10, dist_threshold=64):
         return RegionalAttentionMapGeneratorFunction.apply(mask, prob_threshold, n_pts_threshold, dist_threshold)
