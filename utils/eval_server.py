@@ -21,13 +21,13 @@ from bs4 import BeautifulSoup
 from collections import OrderedDict
 from tqdm import tqdm
 
-# Add STM project to sys path
+# Add RMNet project to sys path
 PROJECT_HOME = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
 sys.path.append(PROJECT_HOME)
 
 import utils.data_loaders
 
-from models.stm import STM
+from models.rmnet import RMNet
 from utils.average_meter import AverageMeter
 from utils.metrics import Metrics
 from utils.summary_writer import SummaryWriter
@@ -79,7 +79,7 @@ def get_networks(cfg):
     networks = []
     for i in range(torch.cuda.device_count()):
         networks.append({
-            'network': STM(cfg).cuda(i),
+            'network': RMNet(cfg).cuda(i),
             'data_loader': get_data_loader(cfg),
             'device': i
         })
@@ -89,7 +89,7 @@ def get_networks(cfg):
 
 def test_network(cfg, network, data_loader, checkpoint, result_set):
     _checkpoint = torch.load(checkpoint)
-    _checkpoint = {k.replace('module.', ''): v for k, v in _checkpoint['stm'].items()}
+    _checkpoint = {k.replace('module.', ''): v for k, v in _checkpoint['rmnet'].items()}
     network.load_state_dict(_checkpoint)
     network.eval()
 
