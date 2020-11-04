@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:03
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-11-02 20:12:20
+# @Last Modified time: 2020-11-04 09:16:35
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -167,7 +167,7 @@ def train_net(cfg):
                 loss.backward()
                 optimizer.step()
             except Exception as ex:
-                logging.warning(ex)
+                logging.exception(ex)
                 continue
 
             train_writer.add_scalar('Loss/Batch', loss.item(), n_itr)

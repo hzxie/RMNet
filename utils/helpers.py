@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-16 14:01:16
+# @Last Modified time: 2020-11-03 12:00:23
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -96,6 +96,28 @@ def get_bounding_boxes(mask):
     y_min, y_max = rows[[0, -1]]
 
     return x_min, x_max, y_min, y_max
+
+
+def pad_divide_by(in_list, d, in_size):
+    out_list = []
+    h, w = in_size
+    if h % d > 0:
+        new_h = h + d - h % d
+    else:
+        new_h = h
+
+    if w % d > 0:
+        new_w = w + d - w % d
+    else:
+        new_w = w
+
+    lh, uh = int((new_h - h) / 2), int(new_h - h) - int((new_h - h) / 2)
+    lw, uw = int((new_w - w) / 2), int(new_w - w) - int((new_w - w) / 2)
+    pad_array = (int(lw), int(uw), int(lh), int(uh))
+    for inp in in_list:
+        out_list.append(F.pad(inp, pad_array))
+
+    return out_list, pad_array
 
 
 def img_denormalize(image, mean, std):

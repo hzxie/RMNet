@@ -58,7 +58,7 @@ __C.DATASET.TEST_DATASET                         = 'DAVIS'
 #
 __C.CONST                                        = edict()
 __C.CONST.RNG_SEED                               = 0
-__C.CONST.N_WORKERS                              = 2
+__C.CONST.N_WORKERS                              = 4
 __C.CONST.IGNORE_IDX                             = 255
 __C.CONST.DATASET_MEAN                           = [0.485, 0.456, 0.406]
 __C.CONST.DATASET_STD                            = [0.229, 0.224, 0.225]
@@ -135,8 +135,8 @@ __C.TEST.N_MAX_OBJECTS                           = 10
 __C.TEST.VISUALIZE_EVERY                         = 10
 __C.TEST.MEMORIZE_EVERY                          = 5
 __C.TEST.MAIN_METRIC_NAME                        = 'JF-Mean'
-__C.TEST.FLIP_LR                                 = True
-__C.TEST.FRAME_SCALES                            = [1.0, 1.25, 1.5]
+__C.TEST.FLIP_LR                                 = False
+__C.TEST.FRAME_SCALES                            = [1.0]
 # DAVIS
 __C.TEST.TESTING_VIDEOS_INDEXES                  = [0, 2, 3, 8, 10, 18, 19, 24, 27, 29]
 # YouTube VOS 2019
