@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-10-30 17:00:20
+# @Last Modified time: 2020-11-04 09:16:23
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -82,7 +82,7 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, rmnet=N
                 loss = nll_loss(torch.log(est_probs), masks).item() + lovasz_loss(
                     est_probs, masks).item()
             except Exception as ex:
-                logging.warning(ex)
+                logging.exception(ex)
                 continue
 
             test_losses.update(loss)

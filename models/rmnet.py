@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:07:00
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-11-03 01:06:18
+# @Last Modified time: 2020-11-03 23:06:26
 # @Email:  cshzxie@gmail.com
 #
 # Maintainers:
@@ -155,8 +155,8 @@ class MemoryReader(torch.nn.Module):
         p = torch.bmm(mi, qi)    # b, THW, HW
         p = p / math.sqrt(D_e)
         p = F.softmax(p, dim=1)    # b, THW, HW
-
         mo = m_val.view(B, D_o, T * H * W)
+
         mem = torch.bmm(mo, p)    # Weighted-sum B, D_o, HW
         mem = mem.view(B, D_o, H, W)
 
@@ -204,34 +204,13 @@ class RMNet(torch.nn.Module):
 
         return pad_mems
 
-    def pad_divide_by(self, in_list, d, in_size):
-        out_list = []
-        h, w = in_size
-        if h % d > 0:
-            new_h = h + d - h % d
-        else:
-            new_h = h
-
-        if w % d > 0:
-            new_w = w + d - w % d
-        else:
-            new_w = w
-
-        lh, uh = int((new_h - h) / 2), int(new_h - h) - int((new_h - h) / 2)
-        lw, uw = int((new_w - w) / 2), int(new_w - w) - int((new_w - w) / 2)
-        pad_array = (int(lw), int(uw), int(lh), int(uh))
-        for inp in in_list:
-            out_list.append(F.pad(inp, pad_array))
-
-        return out_list, pad_array
-
     def memorize(self, frame, masks, n_objects):
         # memorize a frame
         B, K, H, W = masks.shape
         # print(frame.shape)    # torch.Size([bs, 3, 480, 910])
         # print(masks.shape)    # torch.Size([bs, n_objects + 1, 480, 910])
-        (frame, masks), pad = self.pad_divide_by([frame, masks], 16,
-                                                 (frame.size()[2], frame.size()[3]))
+        (frame, masks), pad = utils.helpers.pad_divide_by([frame, masks], 16,
+                                                          (frame.size()[2], frame.size()[3]))
         # print(frame.shape)    # torch.Size([bs, 3, 480, 912])
         # print(masks.shape)    # torch.Size([bs, n_objects + 1, 480, 912])
         # print(pad)            # (1, 1, 0, 0)
@@ -263,13 +242,13 @@ class RMNet(torch.nn.Module):
         # print(v4.shape)       # torch.Size([bs, n_objects, 512, 1, 30, 57])
 
         # Generate the regional memory embedding
-        att_map = self.get_att_map(masks)
+        att_map, bboxes = self.get_att_map(masks)
         att_map = F.interpolate(att_map, scale_factor=1 / 16).unsqueeze(dim=2).unsqueeze(dim=2)
         # print(att_map.shape)  # torch.Size([bs, n_objects, 1, 1, 30, 57])
         k4 = k4 * att_map
         v4 = v4 * att_map
 
-        return k4, v4
+        return k4, v4, bboxes
 
     def warp(self, img0, flow):
         # References:
@@ -305,8 +284,8 @@ class RMNet(torch.nn.Module):
         else:
             expt_mask, _ = self.warp(prev_mask, flow)
 
-        att_map = self.att_map_generator(expt_mask)
-        return att_map
+        att_map, bbox = self.att_map_generator(expt_mask)
+        return att_map, bbox
 
     def soft_aggregation(self, ps, K, n_objects):
         B = len(n_objects)
@@ -323,11 +302,11 @@ class RMNet(torch.nn.Module):
         logit = torch.log((em / (1 - em)))
         return logit
 
-    def segment(self, frame, att_map, keys, values, n_objects):
+    def segment(self, frame, att_map, keys, values, prev_bboxes, curr_bbox, n_objects):
         B, K, keydim, T, H, W = keys.shape
         # print(frame.shape)    # torch.Size([bs, 3, 480, 910])
-        (frame, att_map), pad = self.pad_divide_by([frame, att_map], 16,
-                                                   (frame.size()[2], frame.size()[3]))
+        (frame, att_map), pad = utils.helpers.pad_divide_by([frame, att_map], 16,
+                                                            (frame.size()[2], frame.size()[3]))
         # print(frame.shape)    # torch.Size([bs, 3, 480, 912])
         # print(pad)            # (1, 1, 0, 0)
         r4, r3, r2, _, _ = self.encoder_query(frame)
@@ -415,6 +394,7 @@ class RMNet(torch.nn.Module):
 
         keys = None
         values = None
+        bboxes = None
         est_masks[:, 0] = masks[:, 0]
         n_max_objects = [torch.max(no).item() for no in n_objects]
         existing_objects = [
@@ -432,22 +412,26 @@ class RMNet(torch.nn.Module):
             # Memorize
             prev_mask = utils.helpers.var_or_cuda(est_masks[:, t - 1], device)
             prev_frame = utils.helpers.var_or_cuda(frames[:, t - 1], device)
-            prev_key, prev_value = self.memorize(prev_frame, prev_mask, n_max_objects)
+            prev_key, prev_value, prev_bbox = self.memorize(prev_frame, prev_mask, n_max_objects)
 
             if t - 1 == 0:
                 this_keys, this_values = prev_key, prev_value
+                this_bboxes = prev_bbox.unsqueeze(dim=2)
             else:
                 this_keys = torch.cat([keys, prev_key], dim=3)
                 this_values = torch.cat([values, prev_value], dim=3)
+                this_bboxes = torch.cat([bboxes, prev_bbox.unsqueeze(dim=2)], dim=2)
 
             if t - 1 in to_memorize or t - 1 in contains_new_objects:
                 keys, values = this_keys, this_values
+                bboxes = this_bboxes
 
             # Segment
             curr_frame = utils.helpers.var_or_cuda(frames[:, t], device)
             curr_flow = utils.helpers.var_or_cuda(optical_flows[:, t], device)
-            dist_mtx = self.get_att_map(prev_mask, curr_flow)
-            logit = self.segment(curr_frame, dist_mtx, this_keys, this_values, n_max_objects)
+            reg_att_map, curr_bbox = self.get_att_map(prev_mask, curr_flow)
+            logit = self.segment(curr_frame, reg_att_map, this_keys, this_values, this_bboxes,
+                                 curr_bbox, n_max_objects)
 
             # Detect new objects
             if t in contains_new_objects:
