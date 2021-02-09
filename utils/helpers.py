@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:17:25
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-11-03 12:00:23
+# @Last Modified time: 2020-11-05 15:28:23
 # @Email:  cshzxie@gmail.com
 
 import numpy as np
@@ -41,8 +41,9 @@ def count_parameters(network):
     return sum(p.numel() for p in network.parameters())
 
 
-def multi_scale_inference(cfg, network, frames, masks, optical_flows, n_objects):
+def multi_scale_inference(cfg, tflownet, rmnet, frames, masks, n_objects):
     _, n, c, h, w = frames.size()
+    est_flows = []
     est_probs = []
 
     for fs in cfg.TEST.FRAME_SCALES:
@@ -50,10 +51,12 @@ def multi_scale_inference(cfg, network, frames, masks, optical_flows, n_objects)
                                 align_corners=False).unsqueeze(dim=0)
         _masks = F.interpolate(masks[0].float(), scale_factor=fs,
                                mode='nearest').int().unsqueeze(dim=0)
-        _optical_flows = F.interpolate(optical_flows[0].float(), scale_factor=fs,
-                                       mode='nearest').unsqueeze(dim=0) * fs
 
-        _est_probs = network(_frames, _masks, _optical_flows, n_objects, cfg.TEST.MEMORIZE_EVERY)
+        _est_flows = tflownet(_frames)
+        _est_probs = rmnet(_frames, _masks, _est_flows, n_objects, cfg.TEST.MEMORIZE_EVERY)
+        est_flows.append(
+            F.interpolate(_est_flows[0], size=(h, w), mode='bilinear',
+                          align_corners=False).unsqueeze(dim=0) / fs)
         est_probs.append(
             F.interpolate(_est_probs[0], size=(h, w), mode='bilinear',
                           align_corners=False).unsqueeze(dim=0))
@@ -61,17 +64,18 @@ def multi_scale_inference(cfg, network, frames, masks, optical_flows, n_objects)
         if cfg.TEST.FLIP_LR:
             _frames = torch.flip(_frames, dims=[4])
             _masks = torch.flip(_masks, dims=[4])
-            _optical_flows = torch.flip(_optical_flows, dims=[4])
-            _optical_flows[:, :, 0, :, :] = -_optical_flows[:, :, 0, :, :]
 
-            _est_probs = network(_frames, _masks, _optical_flows, n_objects,
+            # _est_flows = tflownet(_frames)
+            _est_flows = torch.flip(_est_flows, dims=[4])
+            _est_flows[:, :, 0, :, :] = -_est_flows[:, :, 0, :, :]
+            _est_probs = rmnet(_frames, _masks, _est_flows, n_objects,
                                  cfg.TEST.MEMORIZE_EVERY)
             _est_probs = torch.flip(_est_probs, dims=[4])
             est_probs.append(
                 F.interpolate(_est_probs[0], size=(h, w), mode='bilinear',
                               align_corners=False).unsqueeze(dim=0))
 
-    return torch.mean(torch.stack(est_probs), dim=0)
+    return torch.mean(torch.stack(est_flows), dim=0), torch.mean(torch.stack(est_probs), dim=0)
 
 
 def to_onehot(mask, k):
