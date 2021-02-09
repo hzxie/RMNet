@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-19 12:52:36
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-16 12:52:03
+# @Last Modified time: 2020-11-05 17:12:25
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -28,7 +28,7 @@ class SummaryWriter(object):
         self.writer.add_scalar(tag, scalar_value, global_step)
 
     def add_image(self, tag, img_tensor, global_step=None):
-        self.writer.add_image(tag, img_tensor, global_step)
+        self.writer.add_image(tag, img_tensor, global_step, dataformats='HWC')
 
     def close(self):
         if type(self.writer) == tensorboardX.writer.SummaryWriter:

@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:05:17
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-16 13:03:26
+# @Last Modified time: 2020-11-05 13:37:07
 # @Email:  cshzxie@gmail.com
 
 from datetime import datetime
@@ -85,7 +85,7 @@ __C.MEMCACHED.CLIENT_CONFIG                      = '/mnt/lustre/share/memcached_
 __C.PAVI                                         = edict()
 __C.PAVI.ENABLED                                 = False
 __C.PAVI.PROJECT_NAME                            = 'Semi-Video-Segmentation'
-__C.PAVI.TAGS                                    = ['stm']
+__C.PAVI.TAGS                                    = ['rmnet']
 
 
 #
@@ -99,7 +99,10 @@ __C.TRAIN.N_MAX_FRAMES                           = 3
 __C.TRAIN.USE_RANDOM_FRAME_STEPS                 = True
 __C.TRAIN.USE_BATCH_NORM                         = False
 __C.TRAIN.MAX_FRAME_STEPS                        = 20
-__C.TRAIN.LAST_N_EPOCHES_FIXING_FRAME_STEPS      = 50
+__C.TRAIN.KEEP_FRAME_STEPS_THRESHOLD             = 0.745
+__C.TRAIN.EPOCH_INDEX_FIXING_FRAME_STEPS         = 75
+__C.TRAIN.N_EPOCHS_KEEP_FRAME_STEPS              = 3
+__C.TRAIN.NETWORK                                = 'RMNet'    # 'RMNet' or 'TinyFlowNet'
 __C.TRAIN.LEARNING_RATE                          = 1e-5
 __C.TRAIN.BETAS                                  = (.9, .999)
 __C.TRAIN.WEIGHT_DECAY                           = 0

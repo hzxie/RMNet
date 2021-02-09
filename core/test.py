@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:11
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-11-04 09:16:23
+# @Last Modified time: 2020-11-05 15:03:16
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -15,12 +15,18 @@ import utils.helpers
 from tqdm import tqdm
 
 from models.rmnet import RMNet
+from models.tiny_flownet import TinyFlowNet
 from models.lovasz_loss import LovaszLoss
 from utils.average_meter import AverageMeter
 from utils.metrics import Metrics
 
 
-def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, rmnet=None):
+def test_net(cfg,
+             epoch_idx=-1,
+             test_data_loader=None,
+             test_writer=None,
+             tflownet=None,
+             rmnet=None):
     # Set up data loader
     if test_data_loader is None:
         # Set up data loader
@@ -34,19 +40,24 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, rmnet=N
 
     # Setup networks and initialize networks
     if rmnet is None:
+        tflownet = TinyFlowNet(cfg)
         rmnet = RMNet(cfg)
 
         if torch.cuda.is_available():
+            tflownet = torch.nn.DataParallel(tflownet).cuda()
             rmnet = torch.nn.DataParallel(rmnet).cuda()
 
         logging.info('Recovering from %s ...' % (cfg.CONST.WEIGHTS))
         checkpoint = torch.load(cfg.CONST.WEIGHTS)
+        tflownet.load_state_dict(checkpoint['tflownet'])
         rmnet.load_state_dict(checkpoint['rmnet'])
 
     # Switch models to evaluation mode
+    tflownet.eval()
     rmnet.eval()
 
     # Set up loss functions
+    l1_loss = torch.nn.L1Loss()
     nll_loss = torch.nn.NLLLoss(ignore_index=cfg.CONST.IGNORE_IDX)
     lovasz_loss = LovaszLoss(ignore_index=cfg.CONST.IGNORE_IDX)
 
@@ -70,22 +81,26 @@ def test_net(cfg, epoch_idx=-1, test_data_loader=None, test_writer=None, rmnet=N
             # Fix bugs: OOM error for large videos
             try:
                 if epoch_idx == -1:
-                    est_probs = utils.helpers.multi_scale_inference(cfg, rmnet, frames, masks,
-                                                                    optical_flows, n_objects)
+                    est_flows, est_probs = utils.helpers.multi_scale_inference(cfg, tflownet, rmnet, frames,
+                                                                    masks, n_objects)
                 else:
-                    est_probs = rmnet(frames, masks, optical_flows, n_objects,
-                                      cfg.TEST.MEMORIZE_EVERY)
+                    est_flows = tflownet(frames)
+                    est_probs = rmnet(frames, masks, est_flows, n_objects, cfg.TEST.MEMORIZE_EVERY)
 
                 est_probs = est_probs.permute(0, 2, 1, 3, 4)
                 masks = torch.argmax(masks, dim=2)
                 est_masks = torch.argmax(est_probs, dim=1)
-                loss = nll_loss(torch.log(est_probs), masks).item() + lovasz_loss(
-                    est_probs, masks).item()
+
+                if cfg.TRAIN.NETWORK == 'TinyFlowNet':
+                    loss = l1_loss(est_flows, optical_flows)
+                else:    # RMNet
+                    loss = lovasz_loss(est_probs, masks) + nll_loss(torch.log(est_probs), masks)
+
             except Exception as ex:
                 logging.exception(ex)
                 continue
 
-            test_losses.update(loss)
+            test_losses.update(loss.item())
             metrics = Metrics.get(est_masks[0], masks[0])
             test_metrics.update(metrics, torch.max(n_objects[0]).item())
 

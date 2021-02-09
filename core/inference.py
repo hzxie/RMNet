@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-04-09 11:30:26
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-10-30 17:00:12
+# @Last Modified time: 2020-11-05 15:03:15
 # @Email:  cshzxie@gmail.com
 
 import logging
@@ -15,6 +15,7 @@ import utils.helpers
 from tqdm import tqdm
 
 from models.rmnet import RMNet
+from models.tiny_flownet import TinyFlowNet
 
 
 def inference_net(cfg):
@@ -28,24 +29,28 @@ def inference_net(cfg):
         shuffle=False)
 
     # Setup networks and initialize networks
+    tflownet = TinyFlowNet(cfg)
     rmnet = RMNet(cfg)
 
     if torch.cuda.is_available():
+        tflownet = torch.nn.DataParallel(tflownet).cuda()
         rmnet = torch.nn.DataParallel(rmnet).cuda()
 
     # Load the pretrained model from a checkpoint
     logging.info('Recovering from %s ...' % (cfg.CONST.WEIGHTS))
     checkpoint = torch.load(cfg.CONST.WEIGHTS)
+    tflownet.load_state_dict(checkpoint['tflownet'])
     rmnet.load_state_dict(checkpoint['rmnet'])
 
     # Switch models to evaluation mode
+    tflownet.eval()
     rmnet.eval()
 
     # The inference loop
     for idx, (video_name, n_objects, frames, masks, optical_flows) in enumerate(test_data_loader):
         with torch.no_grad():
-            est_probs = utils.helpers.multi_scale_inference(cfg, rmnet, frames, masks,
-                                                            optical_flows, n_objects)
+            _, est_probs = utils.helpers.multi_scale_inference(cfg, tflownet, rmnet, frames, masks,
+                                                               n_objects)
 
             video_name = video_name[0]
             output_folder = os.path.join(cfg.DIR.OUTPUT_DIR, 'benchmark', cfg.CONST.EXP_NAME,

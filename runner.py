@@ -79,6 +79,11 @@ def main():
 
     # Start train/test process
     if not args.test and not args.inference:
+        # Make sure cfg.TRAIN.NETWORK in ['RMNet', 'TinyFlowNet']
+        if cfg.TRAIN.NETWORK not in ['RMNet', 'TinyFlowNet']:
+            logging.error('Please make sure cfg.TRAIN.NETWORK in ["RMNet", "TinyFlowNet"].')
+            sys.exit(1)
+
         train_net(cfg)
     else:
         if 'WEIGHTS' not in cfg.CONST or not os.path.exists(cfg.CONST.WEIGHTS):

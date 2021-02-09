@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-09-05 20:14:54
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-09-23 10:59:10
+# @Last Modified time: 2020-11-05 14:58:28
 # @Email:  cshzxie@gmail.com
 #
 # References:
@@ -14,9 +14,9 @@ import torch.nn.functional as F
 import utils.helpers
 
 
-class FlowNet(torch.nn.Module):
+class TinyFlowNet(torch.nn.Module):
     def __init__(self, cfg):
-        super(FlowNet, self).__init__()
+        super(TinyFlowNet, self).__init__()
 
         self.conv1 = torch.nn.Sequential(
             torch.nn.Conv2d(6, 64, kernel_size=7, stride=2, padding=3, bias=False),
