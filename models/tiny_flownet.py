@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-09-05 20:14:54
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2021-02-10 14:51:30
+# @Last Modified time: 2021-02-10 22:47:23
 # @Email:  cshzxie@gmail.com
 #
 # References:
@@ -84,6 +84,8 @@ class TinyFlowNet(torch.nn.Module):
     def _forward(self, img0, img1):
         (img0, img1), pad = utils.helpers.pad_divide_by([img0, img1], 64,
                                                         (img0.size()[2], img0.size()[3]))
+        img0 = F.interpolate(img0, scale_factor=0.5, mode='bilinear')
+        img1 = F.interpolate(img1, scale_factor=0.5, mode='bilinear')
 
         out_conv2 = self.conv2(self.conv1(torch.cat((img0, img1), dim=1)))
         out_conv3 = self.conv3_1(self.conv3(out_conv2))
@@ -106,7 +108,7 @@ class TinyFlowNet(torch.nn.Module):
 
         concat2 = torch.cat((out_conv2, out_deconv2, flow3_up), dim=1)
         flow2 = self.predict_flow2(concat2)
-        flow2 = F.interpolate(flow2, scale_factor=4, mode='bilinear')
+        flow2 = F.interpolate(flow2, scale_factor=8, mode='bilinear')
 
         if pad[2] + pad[3] > 0:
             flow2 = flow2[:, :, pad[2]:-pad[3], :]
@@ -128,3 +130,4 @@ class TinyFlowNet(torch.nn.Module):
             est_optical_flows[:, t] = self._forward(frames[:, t], frames[:, t - 1])
 
         return est_optical_flows
+
