@@ -2,7 +2,7 @@
 # @Author: Haozhe Xie
 # @Date:   2020-09-05 20:14:54
 # @Last Modified by:   Haozhe Xie
-# @Last Modified time: 2020-11-05 14:58:28
+# @Last Modified time: 2021-02-10 14:51:30
 # @Email:  cshzxie@gmail.com
 #
 # References:
@@ -19,56 +19,36 @@ class TinyFlowNet(torch.nn.Module):
         super(TinyFlowNet, self).__init__()
 
         self.conv1 = torch.nn.Sequential(
-            torch.nn.Conv2d(6, 64, kernel_size=7, stride=2, padding=3, bias=False),
-            torch.nn.BatchNorm2d(64),
+            torch.nn.Conv2d(6, 64, kernel_size=7, stride=2, padding=3),
             torch.nn.LeakyReLU(0.1, inplace=True))  # yapf: disable
 
         self.conv2 = torch.nn.Sequential(
-            torch.nn.Conv2d(64, 128, kernel_size=5, stride=2, padding=2, bias=False),
-            torch.nn.BatchNorm2d(128),
+            torch.nn.Conv2d(64, 128, kernel_size=5, stride=2, padding=2),
             torch.nn.LeakyReLU(0.1, inplace=True))  # yapf: disable
 
         self.conv3 = torch.nn.Sequential(
-            torch.nn.Conv2d(128, 256, kernel_size=5, stride=2, padding=2, bias=False),
-            torch.nn.BatchNorm2d(256),
+            torch.nn.Conv2d(128, 256, kernel_size=5, stride=2, padding=2),
             torch.nn.LeakyReLU(0.1, inplace=True))  # yapf: disable
         self.conv3_1 = torch.nn.Sequential(
-            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1, bias=False),
-            torch.nn.BatchNorm2d(256),
+            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
             torch.nn.LeakyReLU(0.1, inplace=True))  # yapf: disable
 
         self.conv4 = torch.nn.Sequential(
-            torch.nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1, bias=False),
-            torch.nn.BatchNorm2d(512),
+            torch.nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1),
             torch.nn.LeakyReLU(0.1, inplace=True))  # yapf: disable
         self.conv4_1 = torch.nn.Sequential(
-            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1, bias=False),
-            torch.nn.BatchNorm2d(512),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
             torch.nn.LeakyReLU(0.1, inplace=True))  # yapf: disable
 
         self.conv5 = torch.nn.Sequential(
-            torch.nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1, bias=False),
-            torch.nn.BatchNorm2d(512),
+            torch.nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),
             torch.nn.LeakyReLU(0.1, inplace=True))  # yapf: disable
         self.conv5_1 = torch.nn.Sequential(
-            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1, bias=False),
-            torch.nn.BatchNorm2d(512),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
             torch.nn.LeakyReLU(0.1, inplace=True))  # yapf: disable
 
-        self.conv6 = torch.nn.Sequential(
-            torch.nn.Conv2d(512, 1024, kernel_size=3, stride=2, padding=1, bias=False),
-            torch.nn.BatchNorm2d(1024),
-            torch.nn.LeakyReLU(0.1, inplace=True))  # yapf: disable
-        self.conv6_1 = torch.nn.Sequential(
-            torch.nn.Conv2d(1024, 1024, kernel_size=3, padding=1, bias=False),
-            torch.nn.BatchNorm2d(1024),
-            torch.nn.LeakyReLU(0.1, inplace=True))  # yapf: disable
-
-        self.deconv5 = torch.nn.Sequential(
-            torch.nn.ConvTranspose2d(1024, 512, kernel_size=4, stride=2, padding=1, bias=True),
-            torch.nn.LeakyReLU(0.1, inplace=True))
         self.deconv4 = torch.nn.Sequential(
-            torch.nn.ConvTranspose2d(1026, 256, kernel_size=4, stride=2, padding=1, bias=True),
+            torch.nn.ConvTranspose2d(512, 256, kernel_size=4, stride=2, padding=1, bias=True),
             torch.nn.LeakyReLU(0.1, inplace=True))
         self.deconv3 = torch.nn.Sequential(
             torch.nn.ConvTranspose2d(770, 128, kernel_size=4, stride=2, padding=1, bias=True),
@@ -77,18 +57,11 @@ class TinyFlowNet(torch.nn.Module):
             torch.nn.ConvTranspose2d(386, 64, kernel_size=4, stride=2, padding=1, bias=True),
             torch.nn.LeakyReLU(0.1, inplace=True))
 
-        self.predict_flow6 = torch.nn.Conv2d(1024, 2, kernel_size=3, padding=1, bias=True)
-        self.predict_flow5 = torch.nn.Conv2d(1026, 2, kernel_size=3, padding=1, bias=True)
+        self.predict_flow5 = torch.nn.Conv2d(512, 2, kernel_size=3, padding=1, bias=True)
         self.predict_flow4 = torch.nn.Conv2d(770, 2, kernel_size=3, padding=1, bias=True)
         self.predict_flow3 = torch.nn.Conv2d(386, 2, kernel_size=3, padding=1, bias=True)
         self.predict_flow2 = torch.nn.Conv2d(194, 2, kernel_size=3, padding=1, bias=True)
 
-        self.upsampled_flow6_to_5 = torch.nn.ConvTranspose2d(2,
-                                                             2,
-                                                             kernel_size=4,
-                                                             stride=2,
-                                                             padding=1,
-                                                             bias=False)
         self.upsampled_flow5_to_4 = torch.nn.ConvTranspose2d(2,
                                                              2,
                                                              kernel_size=4,
@@ -116,16 +89,10 @@ class TinyFlowNet(torch.nn.Module):
         out_conv3 = self.conv3_1(self.conv3(out_conv2))
         out_conv4 = self.conv4_1(self.conv4(out_conv3))
         out_conv5 = self.conv5_1(self.conv5(out_conv4))
-        out_conv6 = self.conv6_1(self.conv6(out_conv5))
 
-        flow6 = self.predict_flow6(out_conv6)
-        flow6_up = self.upsampled_flow6_to_5(flow6)
-        out_deconv5 = self.deconv5(out_conv6)
-
-        concat5 = torch.cat((out_conv5, out_deconv5, flow6_up), dim=1)
-        flow5 = self.predict_flow5(concat5)
+        flow5 = self.predict_flow5(out_conv5)
         flow5_up = self.upsampled_flow5_to_4(flow5)
-        out_deconv4 = self.deconv4(concat5)
+        out_deconv4 = self.deconv4(out_conv5)
 
         concat4 = torch.cat((out_conv4, out_deconv4, flow5_up), dim=1)
         flow4 = self.predict_flow4(concat4)
