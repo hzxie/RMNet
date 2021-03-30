@@ -209,11 +209,10 @@ class RMNet(torch.nn.Module):
         B, K, H, W = masks.shape
         # print(frame.shape)    # torch.Size([bs, 3, 480, 910])
         # print(masks.shape)    # torch.Size([bs, n_objects + 1, 480, 910])
-        (frame, masks), pad = utils.helpers.pad_divide_by([frame, masks], 16,
+        (frame, masks), _ = utils.helpers.pad_divide_by([frame, masks], 16,
                                                           (frame.size()[2], frame.size()[3]))
         # print(frame.shape)    # torch.Size([bs, 3, 480, 912])
         # print(masks.shape)    # torch.Size([bs, n_objects + 1, 480, 912])
-        # print(pad)            # (1, 1, 0, 0)
 
         # make batch arg list
         batch_list = {'f': [], 'm': [], 'o': []}

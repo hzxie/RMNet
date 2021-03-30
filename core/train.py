@@ -126,7 +126,6 @@ def train_net(cfg):
                 zf.write(os.path.join(_dirname, filename))
 
     # Training/Testing the network
-    losses = AverageMeter()
     n_batches = len(train_data_loader)
     last_epoch_idx_keep_frame_steps = -cfg.TRAIN.N_EPOCHS
     for epoch_idx in range(init_epoch + 1, cfg.TRAIN.N_EPOCHS + 1):
