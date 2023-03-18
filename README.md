@@ -2,8 +2,7 @@
 
 This repository contains the source code for the paper [Efficient Regional Memory Network for Video Object Segmentation](https://arxiv.org/abs/2103.12934).
 
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/hzxie/RMNet.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/hzxie/RMNet/context:python)
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/hzxie/RMNet.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/hzxie/RMNet/alerts/)
+[![codebeat badge](https://codebeat.co/badges/87cae494-10fb-440c-a65a-852645af23ff)](https://codebeat.co/projects/github-com-hzxie-rmnet-master)
 
 ![Overview](https://infinitescript.com/wordpress/wp-content/uploads/2021/03/RMNet-Overview.jpg)
 
