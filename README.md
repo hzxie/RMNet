@@ -2,7 +2,8 @@
 
 This repository contains the source code for the paper [Efficient Regional Memory Network for Video Object Segmentation](https://arxiv.org/abs/2103.12934).
 
-[![codebeat badge](https://codebeat.co/badges/87cae494-10fb-440c-a65a-852645af23ff)](https://codebeat.co/projects/github-com-hzxie-rmnet-master)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=hzxie_RMNet&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=hzxie_RMNet)
+[![codefactor badge](https://www.codefactor.io/repository/github/hzxie/RMNet/badge)](https://www.codefactor.io/repository/github/hzxie/RMNet)
 
 ![Overview](https://www.infinitescript.com/projects/RMNet/RMNet-Overview.jpg)
 
