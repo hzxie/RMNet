@@ -5,7 +5,7 @@ This repository contains the source code for the paper [Efficient Regional Memor
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=hzxie_RMNet&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=hzxie_RMNet)
 [![codefactor badge](https://www.codefactor.io/repository/github/hzxie/RMNet/badge)](https://www.codefactor.io/repository/github/hzxie/RMNet)
 
-![Overview](https://www.infinitescript.com/projects/RMNet/RMNet-Overview.jpg)
+![Overview](https://www.infinitescript.com/projects/RMNet/RMNet-Overview.webp)
 
 ## Cite this work
 
